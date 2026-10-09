@@ -1,0 +1,849 @@
+/* ============================================================
+   TOPO — enxuto: marca, busca, sino, perfil (nada de links de
+   texto — a navegação principal agora é a barra inferior).
+============================================================ */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  padding-top: max(14px, env(safe-area-inset-top, 0px));
+  background: rgba(5, 5, 10, 0.72);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.nav-toggle { display: none; } /* sem hamburguer — a navegação é a barra de baixo */
+
+.site-logo {
+  font-family: "Poppins", "Segoe UI", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+  background: linear-gradient(120deg, #ff2d55 0%, #ff0844 45%, #b026ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.site-nav { display: none; } /* links de texto do topo saíram — vivem na barra inferior */
+
+.header-search {
+  display: none; /* a busca agora é um ícone (ver .header-search-icon) */
+}
+
+.header-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.header-search-icon:hover { background: rgba(255, 255, 255, 0.12); }
+.header-search-icon.active {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  box-shadow: var(--glow-accent);
+}
+
+.header-spacer { flex: 1; }
+
+/* ---------- Busca flutuante (abre por cima da página, sem navegar) ---------- */
+.header-search-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(3, 3, 8, 0.7);
+  backdrop-filter: blur(4px);
+  display: none;
+  padding: 0 12px;
+  padding-top: max(74px, calc(env(safe-area-inset-top, 0px) + 66px));
+}
+.header-search-panel.open { display: block; }
+
+.hsp-box {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  padding: 14px;
+  max-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: hsp-in 0.2s ease;
+}
+@keyframes hsp-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.hsp-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-pill);
+  padding: 10px 14px;
+}
+.hsp-ico { opacity: 0.6; }
+.hsp-input-row input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.95rem;
+}
+.hsp-input-row input::placeholder { color: var(--text-faint); }
+.hsp-input-row button {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--text-dim);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.hsp-input-row button:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+
+.hsp-chip {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-soft);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.hsp-chip:hover { border-color: var(--border-strong); color: #fff; }
+
+.hsp-results { overflow-y: auto; }
+.hsp-status { color: var(--text-faint); font-size: 0.85rem; text-align: center; padding: 20px 0; }
+
+.hsp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.hsp-card {
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.hsp-card img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+}
+.hsp-card span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hsp-see-all {
+  display: block;
+  text-align: center;
+  color: var(--accent-1);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 12px 0 4px;
+}
+.hsp-see-all:hover { text-decoration: underline; }
+
+/* ---------- Sino de notificações ---------- */
+.header-bell { position: relative; }
+#header-bell-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #f5f5f7;
+  font-size: 1rem;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#header-bell-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+.header-bell-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff2d55;
+  box-shadow: 0 0 8px #ff2d55;
+}
+
+.header-bell-panel {
+  display: none;
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: 300px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: rgba(13, 13, 20, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  padding: 10px;
+}
+.header-bell-panel.open { display: block; }
+.header-bell-title { font-weight: 700; padding: 6px 8px 10px; color: #f5f5f7; }
+.header-bell-empty { color: #6b6b78; font-size: 0.85rem; padding: 12px 8px; text-align: center; }
+.header-bell-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #f5f5f7;
+  font-size: 0.85rem;
+}
+.header-bell-item:hover { background: rgba(255, 255, 255, 0.06); }
+.header-bell-item img { width: 40px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+
+/* ---------- Botão de mensagens (💬) — fica ao lado do sino ---------- */
+.header-msgs { position: relative; }
+#header-msgs-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #f5f5f7;
+  font-size: 1rem;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#header-msgs-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+.header-msgs-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: var(--font-body, system-ui, sans-serif);
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #05050a;
+  box-shadow: 0 0 8px rgba(255, 45, 85, 0.6);
+  box-sizing: border-box;
+}
+
+.header-msgs-panel {
+  display: none;
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: 320px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: rgba(13, 13, 20, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  padding: 10px;
+}
+.header-msgs-panel.open { display: block; }
+
+.header-msgs-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 8px 4px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.header-msgs-foot a {
+  color: #ff6b87;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.header-msgs-foot a:hover { text-decoration: underline; }
+
+.header-msgs-add {
+  display: block;
+  text-align: center;
+  color: #ff6b87;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  padding: 6px 0 10px;
+}
+
+.msg-item { align-items: center; }
+.msg-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.msg-item-body b { font-size: 0.88rem; font-weight: 600; }
+.msg-preview {
+  color: #9a9aa8;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg-preview.unread { color: #f5f5f7; font-weight: 600; }
+.msg-item-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.msg-item-meta small { color: #6b6b78; font-size: 0.7rem; }
+.msg-unread-pill {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* ---------- Avisos de amizade dentro do sino ---------- */
+.bell-friend { align-items: flex-start; }
+.bell-friend-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.bell-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bell-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f5f5f7;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+}
+.bell-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.bell-btn.accept { background: var(--gradient-brand); border-color: transparent; }
+.bell-btn:disabled { opacity: 0.5; cursor: default; }
+.bell-error { color: #ff8a9d; font-size: 0.75rem; }
+
+/* ---------- Avatar social (amigos, mensagens, sino) ---------- */
+.soc-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  background: #333;
+  overflow: visible;
+}
+.soc-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.soc-avatar.lg { width: 56px; height: 56px; font-size: 1.3rem; }
+.soc-avatar.sm { width: 32px; height: 32px; font-size: 0.85rem; }
+.soc-live-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2de08e;
+  border: 2px solid #0d0d14;
+  box-shadow: 0 0 8px rgba(45, 224, 142, 0.8);
+}
+
+/* Telas pequenas: os painéis do topo ocupam a largura da tela (senão o
+   da esquerda — mensagens — sairia pra fora). O header tem
+   backdrop-filter, então "fixed" aqui é relativo ao próprio header. */
+@media (max-width: 420px) {
+  .site-header { gap: 8px; padding-left: 12px; padding-right: 12px; }
+}
+
+@media (max-width: 560px) {
+  .header-bell-panel,
+  .header-msgs-panel {
+    position: fixed;
+    top: 100%;
+    margin-top: 6px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 70vh;
+  }
+}
+
+/* ---------- Avatar de perfil (topo direito — é aqui que "Perfil" mora) ---------- */
+.header-profile {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#0d0d14, #0d0d14) padding-box,
+    linear-gradient(120deg, #ff2d55, #b026ff) border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+.header-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.header-caret { display: none; }
+
+.header-profile-menu {
+  display: none;
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: 250px;
+  background: rgba(13, 13, 20, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  padding: 8px;
+}
+.header-profile-menu.open { display: block; }
+
+.hpm-head { display: flex; align-items: center; gap: 10px; padding: 10px 8px 12px; }
+.hpm-head-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: #222; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: #fff; overflow: hidden; flex-shrink: 0;
+  border: 2px solid rgba(255, 45, 85, 0.5);
+}
+.hpm-head-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hpm-head-info { display: flex; flex-direction: column; overflow: hidden; }
+.hpm-head-info strong { font-size: 0.9rem; color: #f5f5f7; }
+.hpm-head-info span { font-size: 0.7rem; color: #6b6b78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.hpm-section {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.hpm-section a, .hpm-section button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #d8d8e0;
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.hpm-section a:hover, .hpm-section button:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+#header-logout-btn { color: #ff6b81 !important; }
+
+/* ============================================================
+   BARRA INFERIOR — navegação principal do site (mobile-first,
+   igual referência): Início / Buscar / Filmes / Favoritos / Salas.
+   "Perfil" mora só no avatar do topo, não aqui.
+============================================================ */
+.bottom-nav {
+  position: fixed;
+  left: 10px; right: 10px; bottom: 12px;
+  z-index: 150;
+  display: flex;
+  justify-content: space-around;
+  background: rgba(14, 14, 20, 0.92);
+  backdrop-filter: blur(22px);
+  border: 1px solid var(--border-soft);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  padding: 9px 6px;
+  padding-bottom: max(9px, env(safe-area-inset-bottom, 0px));
+}
+
+.bottom-nav a,
+.bottom-nav .bn-canais-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-decoration: none;
+  color: #6b6b78;
+  font-size: 0.66rem;
+  font-weight: 700;
+  flex: 1;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.bottom-nav a .bn-icon,
+.bottom-nav .bn-canais-btn .bn-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.bottom-nav a.active,
+.bottom-nav .bn-canais-btn:active {
+  color: #ff2d55;
+}
+.bottom-nav a.active .bn-icon {
+  filter: drop-shadow(0 0 10px rgba(255, 45, 85, 0.8));
+}
+.bottom-nav .bn-canais-btn:hover { color: #d8d8e0; }
+
+/* ============================================================
+   ASSISTENTE DE IA (Gemini) — botão flutuante + painel de chat.
+   Fica por cima de tudo, acima da barra inferior.
+============================================================ */
+.ai-assistant-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 88px;
+  z-index: 250;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg, #7454ff, #ff2d55);
+  color: #fff;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 26px rgba(116, 84, 255, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-assistant-toggle:hover { box-shadow: 0 10px 34px rgba(116, 84, 255, 0.6); transform: translateY(-1px); }
+.ai-assistant-toggle:active { transform: scale(0.94); }
+
+@media (min-width: 900px) {
+  .ai-assistant-toggle { right: max(16px, calc(50% - 240px + 16px)); bottom: 26px; }
+}
+
+.ai-assistant-panel {
+  position: fixed;
+  right: 12px;
+  left: 12px;
+  bottom: 88px;
+  z-index: 251;
+  max-width: 380px;
+  margin-left: auto;
+  height: min(560px, 72vh);
+  background: rgba(8, 8, 14, 0.94);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(116, 84, 255, 0.22);
+  border-radius: var(--radius-lg, 22px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 40px rgba(116, 84, 255, 0.12);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ai-assistant-panel.open {
+  display: flex;
+  animation: ai-panel-in 0.22s ease;
+}
+@keyframes ai-panel-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (min-width: 900px) {
+  .ai-assistant-panel { right: max(12px, calc(50% - 240px + 12px)); left: auto; bottom: 96px; }
+}
+
+.ai-assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(116, 84, 255, 0.18), rgba(255, 45, 85, 0.14));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.ai-assistant-header #ai-assistant-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.ai-assistant-header #ai-assistant-close:hover { background: rgba(255, 255, 255, 0.2); }
+
+.ai-assistant-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-msg {
+  max-width: 88%;
+  flex-shrink: 0;
+  padding: 11px 14px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  animation: ai-msg-in 0.2s ease;
+}
+@keyframes ai-msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.ai-msg-bot {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(116, 84, 255, 0.2);
+  border-bottom-left-radius: 5px;
+  color: #f0f0f5;
+}
+.ai-msg-bot.loading { opacity: 0.6; font-style: italic; }
+.ai-msg-bot.error { border-color: rgba(255, 45, 85, 0.4); color: #ff9baa; }
+.ai-msg strong { color: #fff; font-weight: 800; }
+
+.ai-msg-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, rgba(116, 84, 255, 0.35), rgba(255, 45, 85, 0.3));
+  border-bottom-right-radius: 5px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.ai-results-row {
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  align-self: stretch;
+}
+.ai-results-row::-webkit-scrollbar { display: none; }
+
+.ai-result-card {
+  flex-shrink: 0;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: #eee;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+.ai-result-card img {
+  width: 96px;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ai-result-card span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ai-result-card.ai-channel-card img,
+.ai-result-card.ai-room-card img { aspect-ratio: 1/1; object-fit: contain; padding: 10px; }
+
+.ai-assistant-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+.ai-assistant-form input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill, 20px);
+  padding: 11px 15px;
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+}
+.ai-assistant-form input:focus { border-color: #7454ff; }
+.ai-assistant-form input:disabled { opacity: 0.6; }
+.ai-assistant-form button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #7454ff, #ff2d55);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(116, 84, 255, 0.4);
+}
+.ai-assistant-form button:disabled { opacity: 0.6; }
+
+@media (max-width: 380px) {
+  .ai-assistant-panel { height: min(520px, 76vh); }
+}
+
+/* ---------- Card de recomendação de filme/série dentro do chat da IA ---------- */
+.ai-movie-card {
+  margin-top: 2px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: visible;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+.ai-movie-card img {
+  width: 84px;
+  aspect-ratio: 2/3;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+}
+.ai-mc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-mc-title {
+  font-weight: 900;
+  font-size: 0.86rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.ai-mc-meta { font-size: 0.7rem; opacity: 0.55; }
+.ai-mc-stars { font-size: 0.75rem; color: #ffcc33; letter-spacing: 1px; }
+.ai-mc-rating { font-size: 0.68rem; opacity: 0.5; margin-top: -2px; }
+.ai-mc-syn {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ai-mc-btns { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.ai-mc-btn {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+}
+.ai-mc-watch {
+  background: linear-gradient(135deg, #7454ff, #ff2d55);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(116, 84, 255, 0.35);
+}
+.ai-mc-share {
+  background: rgba(255, 255, 255, 0.08);
+  color: #b9b9c8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ai-mc-share.copiado { color: #5fe0a0; }
+body { padding-bottom: 92px; }
+
+@media (min-width: 900px) {
+  /* Em telas bem largas, a barra de baixo ainda funciona bem, mas
+     dá pra deixá-la mais compacta e centralizada visualmente. */
+  .bottom-nav { max-width: 480px; left: 50%; right: auto; transform: translateX(-50%); padding: 10px 4px; }
+}

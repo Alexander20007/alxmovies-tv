@@ -1,0 +1,254 @@
+/* ============================================================
+   ALXmovies — visual Material Design 3 (tema escuro) para o app Android.
+   Tudo aqui vale só dentro do app (html.native). O site no navegador não muda.
+   Estratégia: 1) redefine as variáveis do theme.css (cores, formas, sombras) e
+   2) ajusta os componentes (botões, campos, painéis, listas) e a estrutura (barras).
+============================================================ */
+
+/* ---------- 1. Tokens ---------- */
+html.native {
+  /* esquema de cores (semente #FF2D55) */
+  --md-primary: #E8184A;
+  --md-on-primary: #FFFFFF;
+  --md-primary-light: #FF8FA6;               /* texto/realce sobre fundo escuro */
+  --md-primary-container: #7A0F2E;
+  --md-on-primary-container: #FFD9E0;
+  --md-secondary-container: #5A3F46;
+  --md-on-secondary-container: #FFD9E0;
+  --md-surface: #141013;
+  --md-surface-container-lowest: #0F0B0E;
+  --md-surface-container-low: #1D181B;
+  --md-surface-container: #231E21;
+  --md-surface-container-high: #2D2729;
+  --md-surface-container-highest: #383133;
+  --md-on-surface: #EBDFE2;
+  --md-on-surface-variant: #D3C2C6;
+  --md-outline: #9C8C90;
+  --md-outline-variant: #4F4447;
+  --md-error: #FFB4AB;
+  --md-error-container: #93000A;
+  --md-on-error-container: #FFDAD6;
+
+  /* elevação */
+  --md-elev-1: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px 1px rgba(0,0,0,.2);
+  --md-elev-2: 0 1px 2px rgba(0,0,0,.35), 0 2px 6px 2px rgba(0,0,0,.2);
+  --md-elev-3: 0 1px 3px rgba(0,0,0,.35), 0 4px 8px 3px rgba(0,0,0,.2);
+
+  /* variáveis do tema antigo → valores Material (isso re-pinta quase todas as telas de uma vez) */
+  --bg: var(--md-surface);
+  --bg-elevated: var(--md-surface-container-low);
+  --bg-card: var(--md-surface-container);
+  --bg-glass: var(--md-surface-container-high);
+  --border-soft: rgba(211, 194, 198, 0.12);
+  --border-strong: rgba(211, 194, 198, 0.28);
+  --text: var(--md-on-surface);
+  --text-dim: var(--md-on-surface-variant);
+  --text-faint: var(--md-outline);
+  --accent-1: #FF6B8A;
+  --accent-2: var(--md-primary);
+  --accent-3: var(--md-primary);
+  --gradient-brand: linear-gradient(0deg, #E8184A, #E8184A);
+  --gradient-brand-soft: linear-gradient(0deg, rgba(232,24,74,.20), rgba(232,24,74,.20));
+  --glow-accent: none;
+  --glow-accent-lg: none;
+  --success: #7FDB9E;
+  --warning: #FFD07A;
+  --danger: var(--md-error);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-card: none;
+  --shadow-float: var(--md-elev-3);
+  --font-display: Roboto, "Google Sans", system-ui, sans-serif;
+  --font-body: Roboto, system-ui, sans-serif;
+}
+
+/* fundo liso (sem as manchas de gradiente do site) */
+html.native, html.native body { background: var(--md-surface); background-image: none; color: var(--md-on-surface); font-family: var(--font-body); }
+html.native h1, html.native h2, html.native h3, html.native h4 { font-family: var(--font-display); letter-spacing: 0; font-weight: 500; }
+html.native a { -webkit-tap-highlight-color: transparent; }
+
+/* ---------- 2. Efeito de toque ---------- */
+.ripple-box { position: fixed; overflow: hidden; pointer-events: none; z-index: 2147483000; }
+.ripple-wave { position: absolute; border-radius: 50%; background: rgba(255,255,255,.16); transform: scale(0); animation: md-ripple .5s cubic-bezier(.2,0,0,1) forwards; }
+@keyframes md-ripple { to { transform: scale(1); opacity: 0; } }
+
+/* ---------- 3. Barra superior ---------- */
+.ntb {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 800;
+  height: calc(64px + var(--sat)); padding: var(--sat) 4px 0 16px;
+  display: flex; align-items: center; gap: 0;
+  background: var(--md-surface); transition: background .2s ease, box-shadow .2s ease;
+}
+.ntb.transparent { background: linear-gradient(rgba(20,16,19,.9), rgba(20,16,19,0)); }
+.ntb.solid { background: var(--md-surface-container-low); box-shadow: var(--md-elev-1); }
+.ntb-title { flex: 1; min-width: 0; font: 400 22px/28px var(--font-display); color: var(--md-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ntb-brand { font-weight: 700; letter-spacing: -.3px; }
+.ntb-brand span { color: var(--md-primary-light); }
+.ntb-icon, .ntb #header-bell-btn, .ntb #header-msgs-btn {
+  position: relative; width: 48px; height: 48px; flex: none; border-radius: 50%; border: 0; background: none; box-shadow: none;
+  color: var(--md-on-surface-variant); display: grid; place-items: center; padding: 0; cursor: pointer; backdrop-filter: none;
+}
+.ntb .header-bell, .ntb .header-msgs { display: flex; position: static; }
+.ntb .header-bell-dot { position: absolute; top: 12px; right: 12px; width: 9px; height: 9px; border-radius: 50%; background: var(--md-primary); border: 2px solid var(--md-surface); }
+.ntb .header-msgs-badge { position: absolute; top: 6px; right: 4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--md-primary); color: #fff; font: 700 11px/18px Roboto; align-items: center; justify-content: center; }
+.ntb-avatar { width: 48px; height: 48px; flex: none; border: 0; background: none; padding: 0; display: grid; place-items: center; cursor: pointer; }
+.ntb-avatar span { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--md-secondary-container); color: var(--md-on-secondary-container); font: 600 15px Roboto; }
+.ntb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* painel Início: o destaque fica por trás da barra transparente */
+html.native .hero { margin-top: calc(-1 * var(--bar-top)); border-radius: 0 0 28px 28px; }
+
+/* ---------- 4. Navegação inferior ---------- */
+.nnav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 800;
+  height: calc(80px + var(--sab)); padding: 12px 8px var(--sab);
+  display: flex; justify-content: space-around; align-items: flex-start;
+  background: var(--md-surface-container); box-shadow: 0 -1px 0 var(--md-outline-variant);
+}
+.nnav-item { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; text-decoration: none; color: var(--md-on-surface-variant); cursor: pointer; font: 500 12px/16px Roboto, sans-serif; }
+.nnav-pill { width: 64px; height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background .2s ease; }
+.nnav-item.active { color: var(--md-on-surface); }
+.nnav-item.active .nnav-pill { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+
+/* ---------- 5. Painéis que sobem de baixo (bottom sheets) ---------- */
+.native-scrim { position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.native-scrim.show { opacity: 1; pointer-events: auto; }
+
+.ns-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; max-height: 86dvh; overflow-y: auto;
+  padding: 8px 0 calc(16px + var(--sab)); border-radius: 28px 28px 0 0; background: var(--md-surface-container-low);
+  transform: translateY(105%); visibility: hidden; transition: transform .3s cubic-bezier(.05,.7,.1,1), visibility 0s .3s;
+}
+.ns-sheet.open { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.05,.7,.1,1); }
+.ns-handle { width: 32px; height: 4px; border-radius: 2px; background: var(--md-outline); opacity: .5; margin: 4px auto 12px; }
+.ns-head { display: flex; align-items: center; gap: 14px; padding: 4px 24px 14px; }
+.ns-avatar { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; color: #fff; font: 600 20px Roboto; flex: none; }
+.ns-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ns-head-text { display: flex; flex-direction: column; min-width: 0; }
+.ns-head-text strong { font: 500 16px/24px Roboto; color: var(--md-on-surface); }
+.ns-head-text span { font: 400 14px/20px Roboto; color: var(--md-on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ns-group { padding: 4px 0; border-top: 1px solid var(--md-outline-variant); }
+.ns-item { width: 100%; display: flex; align-items: center; gap: 16px; min-height: 52px; padding: 0 24px; border: 0; background: none; color: var(--md-on-surface); text-decoration: none; font: 400 16px/24px Roboto; text-align: left; cursor: pointer; }
+.ns-item svg { color: var(--md-on-surface-variant); flex: none; }
+.ns-item.danger, .ns-item.danger svg { color: var(--md-error); }
+
+/* sino e mensagens viram painéis de baixo */
+html.native .header-bell-panel, html.native .header-msgs-panel {
+  position: fixed !important; left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important;
+  width: auto !important; max-width: none !important; max-height: 78dvh !important; overflow-y: auto;
+  border-radius: 28px 28px 0 0 !important; border: 0 !important; background: var(--md-surface-container-low) !important;
+  box-shadow: none !important; backdrop-filter: none !important; padding-bottom: var(--sab); z-index: 1000;
+  display: block !important; visibility: hidden; opacity: 1 !important; transform: translateY(105%);
+  transition: transform .3s cubic-bezier(.05,.7,.1,1), visibility 0s .3s;
+}
+html.native .header-bell-panel.open, html.native .header-msgs-panel.open { visibility: visible; transform: none; transition: transform .3s cubic-bezier(.05,.7,.1,1); }
+
+/* janelas (modais) → bottom sheet */
+html.native :is(.modal-overlay, .salas-modal, .soc-modal, .guest-code-overlay, .d2-modal, .channels-panel-overlay) {
+  align-items: flex-end !important; justify-content: center !important; background: rgba(0,0,0,.52) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+html.native :is(.modal-box, .salas-modal-box, .soc-modal-box, .guest-panel-box, .guest-code-box, .d2-modal-box, .channels-panel-box) {
+  width: 100% !important; max-width: none !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important;
+  border-radius: 28px 28px 0 0 !important; max-height: calc(100dvh - var(--sat) - 40px) !important; overflow-y: auto;
+  background: var(--md-surface-container-low) !important; padding-bottom: calc(24px + var(--sab)) !important;
+  animation: md-sheet-up .3s cubic-bezier(.05,.7,.1,1) both;
+}
+html.native :is(.modal-box, .salas-modal-box, .soc-modal-box, .guest-panel-box, .guest-code-box, .d2-modal-box)::before {
+  content: ""; display: block; width: 32px; height: 4px; border-radius: 2px; background: var(--md-outline); opacity: .5; margin: 0 auto 16px;
+}
+@keyframes md-sheet-up { from { transform: translateY(60px); opacity: .4; } to { transform: none; opacity: 1; } }
+
+/* ---------- 6. Botões ---------- */
+/* forma/tipografia comuns */
+html.native :is(.btn, .btn-primary, .btn-secondary, .btn-outline, .btn-glass, .btn-brand, .btn-danger, .auth-submit, .account-btn, .action-btn, .soc-btn, .salas-filtro-btn, .bell-btn, .comment-reply-submit, .cookie-consent-btn) {
+  min-height: 40px; border-radius: 20px; font: 500 14px/20px Roboto, sans-serif; letter-spacing: .1px; text-transform: none;
+  box-shadow: none; text-shadow: none; backdrop-filter: none; transition: background .15s ease, opacity .15s ease;
+}
+/* preenchido */
+html.native :is(.btn-brand, .btn-primary, .auth-submit, .account-btn:not(.secondary):not(.danger), .action-btn.play, .hero-btn.primary, .dx-play, .soc-btn.primary, .bell-btn.accept, .comment-reply-submit, .ai-mc-watch) {
+  background: var(--md-primary); background-image: none; color: var(--md-on-primary); border: 0;
+}
+/* tonal */
+html.native :is(.btn-secondary, .btn-glass, .btn-file, .account-btn.secondary, .soc-btn:not(.primary):not(.ghost), .hero-btn.secondary, .dx-ghost, .action-btn:not(.play), .salas-filtro-btn, .bell-btn:not(.accept), .auth-guest-btn) {
+  background: var(--md-secondary-container); background-image: none; color: var(--md-on-secondary-container); border: 0;
+}
+html.native .salas-filtro-btn.ativo { background: var(--md-primary); color: var(--md-on-primary); }
+/* contorno */
+html.native :is(.btn-outline, .soc-btn.ghost, .btn-ghost) { background: transparent; color: var(--md-primary-light); border: 1px solid var(--md-outline); }
+/* perigo */
+html.native :is(.btn-danger, .account-btn.danger, .sala-btn-perigo) { background: var(--md-error-container); color: var(--md-on-error-container); border: 0; }
+html.native :is(button, .btn):disabled { opacity: .38; }
+html.native .is-loading { opacity: .85; }
+
+/* botão flutuante do assistente de IA (FAB) */
+html.native .ai-assistant-toggle {
+  right: 16px; bottom: calc(var(--bar-bottom) + 16px); width: 56px; height: 56px; border-radius: 16px; font-size: 0;
+  background: var(--md-primary-container); background-image: none; color: var(--md-on-primary-container); box-shadow: var(--md-elev-3); border: 0;
+  display: grid; place-items: center;
+}
+html.native .ai-assistant-panel {
+  left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important; width: auto !important; max-width: none !important;
+  height: 82dvh !important; max-height: none !important; border-radius: 28px 28px 0 0 !important; border: 0 !important;
+  background: var(--md-surface-container-low) !important; backdrop-filter: none !important; box-shadow: none !important; padding-bottom: var(--sab);
+}
+html.native .guest-widget, html.native .birthday-widget {
+  bottom: calc(var(--bar-bottom) + 88px); border-radius: 16px; background: var(--md-surface-container-high); background-image: none; border: 0; box-shadow: var(--md-elev-2);
+}
+html.native .birthday-widget { left: 16px; bottom: calc(var(--bar-bottom) + 16px); }
+
+/* ---------- 7. Campos de texto, switches, seleção ---------- */
+html.native :is(input[type=text], input[type=email], input[type=password], input[type=tel], input[type=number], input[type=search], input[type=date], input[type=time], textarea, select) {
+  background: transparent; color: var(--md-on-surface); caret-color: var(--md-primary-light);
+  border: 1px solid var(--md-outline); border-radius: 12px; min-height: 52px; padding: 12px 16px;
+  font: 400 16px/24px Roboto, sans-serif; box-shadow: none; backdrop-filter: none; outline: none;
+}
+html.native :is(input, textarea, select):focus { border-color: var(--md-primary-light); box-shadow: 0 0 0 1px var(--md-primary-light); background: transparent; }
+html.native :is(input, textarea)::placeholder { color: var(--md-outline); }
+html.native select { background: var(--md-surface-container-high); }
+html.native :is(input[type=checkbox], input[type=radio], input[type=range]) { accent-color: var(--md-primary); }
+
+html.native .switch { width: 52px; height: 32px; }
+html.native .switch-track { border: 2px solid var(--md-outline); background: var(--md-surface-container-highest); border-radius: 16px; box-shadow: none; }
+html.native .switch-track::before { width: 16px; height: 16px; left: 4px; top: 6px; background: var(--md-outline); transition: transform .2s ease, width .2s, height .2s, top .2s, background .2s; }
+html.native .switch input:checked + .switch-track { background: var(--md-primary); border-color: var(--md-primary); box-shadow: none; }
+html.native .switch input:checked + .switch-track::before { width: 24px; height: 24px; top: 2px; background: #fff; transform: translateX(16px); }
+html.native .soc-switch { width: 52px; height: 32px; }
+html.native .soc-switch i { border: 2px solid var(--md-outline); background: var(--md-surface-container-highest); border-radius: 16px; box-shadow: none; }
+html.native .soc-switch input:checked + i { background: var(--md-primary); border-color: var(--md-primary); box-shadow: none; }
+
+/* ---------- 8. Cartões e listas ---------- */
+html.native :is(.account-card, .soc-box, .activity-profile-card, .achievements-panel, .sala-card, .ai-movie-card, .soc-card, .auth-box, .channel-group-card, .glass-panel, .theme-card, .comment-item, .soc-gate, .guest-confirm-box) {
+  background: var(--md-surface-container); background-image: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; border-radius: 16px;
+}
+html.native .auth-box { border-radius: 28px; background: var(--md-surface-container-low); padding-left: 24px; padding-right: 24px; }
+html.native .account-card-head { min-height: 64px; }
+html.native :is(.soc-row, .chat-item, .header-bell-item, .mini-profile-row) { border-radius: 16px; background: transparent; border: 0; }
+html.native .chat-item.active { background: var(--md-secondary-container); }
+html.native :is(.pill, .dx-chip, .soc-pill, .msg-unread-pill, .plan-badge) { border-radius: 8px; background: var(--md-secondary-container); color: var(--md-on-secondary-container); border: 0; }
+html.native .plan-badge.active { background: #1E4D2B; color: #B7F0C5; }
+
+/* filas, cartões de filme, cabeçalhos de seção */
+html.native .row-title { font: 500 20px/28px var(--font-display); letter-spacing: 0; color: var(--md-on-surface); }
+html.native .media-card { border-radius: 12px; box-shadow: none; border: 0; }
+html.native .media-card img { border-radius: 12px; }
+html.native .card-rating { border-radius: 8px; background: rgba(20,16,19,.78); backdrop-filter: none; }
+html.native .search-header h1 { font: 400 28px/36px var(--font-display); }
+html.native .mylist-tab, html.native .dx-tab { border-radius: 20px; }
+html.native .mylist-tab.active, html.native .dx-tab.active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+
+/* chat e salas: a altura considera as barras do app */
+html.native .chat-app { height: calc(100dvh - var(--bar-top) - var(--bar-bottom)); }
+html.native .im-bar { padding-top: calc(var(--sat) + 10px); }
+html.native .im-btn { background: rgba(20,16,19,.72); backdrop-filter: none; border: 0; }
+
+/* ---------- 9. Snackbar e transição de tela ---------- */
+html.native .native-toast {
+  bottom: calc(var(--bar-bottom) + var(--sab) + 12px); left: 16px; right: 16px; transform: none; max-width: none; border-radius: 4px; text-align: left;
+  background: #322F35; color: #F5EFF7; font: 400 14px/20px Roboto, sans-serif; padding: 14px 16px; box-shadow: var(--md-elev-3);
+}
+.route-enter { animation: md-route-in .26s cubic-bezier(.05,.7,.1,1) both; }
+@keyframes md-route-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+html.native .global-busy { background: var(--md-surface-container-high); border: 0; box-shadow: var(--md-elev-2); }
+html.native .spinner { border-color: rgba(235,223,226,.2); border-top-color: var(--md-primary-light); }

@@ -1,0 +1,321 @@
+/* ============================================================
+   SALAS — Theater Lobby
+   Lista de salas ao vivo, visual glass/neon alinhado ao theme.css
+============================================================ */
+
+.salas-page {
+  padding: 18px 20px 100px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.salas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.salas-header h1 {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.salas-sub {
+  color: var(--text-dim);
+  margin: 6px 0 22px;
+  font-size: 14px;
+}
+
+.btn-primary {
+  background: var(--gradient-brand);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--glow-accent);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+.btn-primary:hover { box-shadow: 0 0 40px rgba(255, 45, 85, 0.65); transform: translateY(-1px); }
+.btn-primary:active { transform: scale(0.97); }
+
+/* ---------- Filtros em pílula ---------- */
+.salas-filtros {
+  display: flex;
+  gap: 10px;
+  margin: 4px 0 22px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.salas-filtros::-webkit-scrollbar { display: none; }
+.salas-filtro-btn {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft);
+  color: var(--text-dim);
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+  white-space: nowrap;
+}
+.salas-filtro-btn:hover { border-color: var(--border-strong); color: var(--text); }
+.salas-filtro-btn.ativo {
+  background: rgba(255, 45, 85, 0.12);
+  border-color: var(--accent-1);
+  color: #fff;
+  box-shadow: 0 0 18px rgba(255, 45, 85, 0.35), inset 0 0 14px rgba(255, 45, 85, 0.12);
+}
+
+.salas-subtitulo {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.salas-subtitulo::before {
+  content: "";
+  width: 4px; height: 16px;
+  border-radius: 4px;
+  background: var(--gradient-brand);
+  display: inline-block;
+}
+.salas-recentes-section { margin-bottom: 30px; }
+
+/* ---------- Grid / lista de salas ---------- */
+.salas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.salas-empty {
+  color: var(--text-faint);
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
+/* ---------- Card de sala ---------- */
+.sala-card {
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+.sala-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 45, 85, 0.4);
+  box-shadow: 0 0 26px rgba(255, 45, 85, 0.16);
+}
+.sala-card.assistindo {
+  border-color: rgba(255, 45, 85, 0.35);
+  box-shadow: 0 0 28px rgba(255, 45, 85, 0.16), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.sala-card img {
+  width: 74px;
+  height: 104px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.sala-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding-right: 68px;
+}
+.sala-card-info h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sala-card-info p {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sala-card-host, .sala-card-status { display: none; } /* substituídos pelas tags abaixo */
+
+.sala-card-live {
+  margin-top: 2px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+}
+.sala-card-live::before {
+  content: "";
+  width: 6px; height: 6px;
+  background: var(--accent-1);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent-1);
+  animation: sala-pulse 1.2s infinite;
+}
+.sala-card-live.pausado { color: var(--text-faint); }
+.sala-card-live.pausado::before { background: var(--text-faint); box-shadow: none; animation: none; }
+
+@keyframes sala-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.sala-card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.sala-card-tags span {
+  font-size: 0.66rem;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-soft);
+  font-weight: 700;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.sala-card-tags span.tv { background: rgba(176, 38, 255, 0.12); border-color: rgba(176, 38, 255, 0.25); color: #d3a8ff; }
+.sala-card-tags span.privada { background: rgba(255, 204, 77, 0.1); border-color: rgba(255, 204, 77, 0.25); color: var(--warning); }
+.sala-card-tags span.publica { background: rgba(45, 224, 142, 0.12); border-color: rgba(45, 224, 142, 0.25); color: var(--success); }
+
+.sala-card-join {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: var(--gradient-brand);
+  border: none;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  padding: 9px 16px;
+  border-radius: 12px;
+  box-shadow: 0 0 16px rgba(255, 45, 85, 0.45);
+  pointer-events: none; /* clique é tratado pelo card inteiro */
+}
+
+/* Botão flutuante criar sala, visível ao rolar (o header já tem um
+   atalho fixo — esse reforça a ação principal da página) */
+#btn-criar-sala { flex-shrink: 0; }
+
+/* ---------- Modais (usados em salas.html e sala.html) ---------- */
+.salas-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 3, 8, 0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.salas-modal-box {
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  padding: 26px;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.salas-modal-box h2 {
+  margin-bottom: 4px;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+.salas-modal-box label { font-size: 13px; color: var(--text-dim); margin-top: 6px; font-weight: 600; }
+.salas-modal-box input[type="text"],
+.salas-modal-box input[type="password"],
+.salas-modal-box input[type="number"] {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: #fff;
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+}
+.salas-modal-box input:focus {
+  outline: none;
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(255, 45, 85, 0.15);
+}
+.salas-modal-close {
+  position: absolute;
+  top: 14px; right: 16px;
+  background: rgba(255,255,255,0.06);
+  border: none;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.salas-modal-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.salas-checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.salas-erro { color: var(--danger); font-size: 13px; min-height: 16px; }
+
+.salas-busca-resultados { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.salas-busca-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px; border-radius: 10px; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.salas-busca-item:hover { background: rgba(255,255,255,0.08); }
+.salas-busca-item img { width: 34px; height: 50px; object-fit: cover; border-radius: 6px; }
+.salas-filme-selecionado {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 8px;
+}
+.salas-filme-selecionado img { width: 40px; height: 60px; object-fit: cover; border-radius: 6px; }
+.salas-tv-opcoes { display: flex; flex-direction: column; gap: 6px; }
+.salas-tv-opcoes-linha { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.salas-tv-opcoes-linha input { width: 70px; }
+
+@media (max-width: 480px) {
+  .salas-header h1 { font-size: 24px; }
+  .btn-primary { padding: 10px 16px; font-size: 13px; }
+  .salas-grid { grid-template-columns: 1fr; }
+  .sala-card-info { padding-right: 60px; }
+}

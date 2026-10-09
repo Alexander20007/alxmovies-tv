@@ -1,0 +1,263 @@
+/* ============================================================
+   ALXMOVIES — SISTEMA DE DESIGN (theme.css)
+   ------------------------------------------------------------
+   Base visual compartilhada por TODAS as páginas do site: cores,
+   tipografia, glass/glow, botões, cards, inputs. Carregado em toda
+   página, DEPOIS de style.css (que continua com resets antigos) e
+   ANTES do CSS específico de cada tela.
+============================================================ */
+
+:root {
+  /* Paleta */
+  --bg: #05050a;
+  --bg-elevated: #0d0d14;
+  --bg-card: #12121b;
+  --bg-glass: rgba(18, 18, 27, 0.72);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #f5f5f7;
+  --text-dim: #9a9aa8;
+  --text-faint: #6b6b78;
+
+  --accent-1: #ff2d55;
+  --accent-2: #ff0844;
+  --accent-3: #b026ff;
+  --gradient-brand: linear-gradient(120deg, #ff2d55 0%, #ff0844 45%, #b026ff 100%);
+  --gradient-brand-soft: linear-gradient(120deg, rgba(255,45,85,0.25), rgba(176,38,255,0.18));
+  --glow-accent: 0 0 24px rgba(255, 45, 85, 0.45);
+  --glow-accent-lg: 0 0 60px rgba(255, 45, 85, 0.35), 0 0 120px rgba(176, 38, 255, 0.15);
+
+  --success: #2de08e;
+  --warning: #ffcc4d;
+  --danger: #ff4d6d;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-float: 0 16px 50px rgba(0, 0, 0, 0.55);
+
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800;900&display=swap");
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+body {
+  background-image:
+    radial-gradient(ellipse 900px 500px at 15% -5%, rgba(255, 45, 85, 0.16), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 10%, rgba(176, 38, 255, 0.12), transparent 55%),
+    radial-gradient(ellipse 800px 600px at 50% 100%, rgba(255, 8, 68, 0.08), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+h1, h2, h3, h4, .theme-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Marca ---------- */
+.brand-mark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.brand-mark::before {
+  content: "▶";
+  font-size: 0.8rem;
+  -webkit-text-fill-color: initial;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Botões ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-brand {
+  background: var(--gradient-brand);
+  color: #fff;
+  box-shadow: var(--glow-accent);
+}
+.btn-brand:hover { box-shadow: 0 0 34px rgba(255, 45, 85, 0.65); }
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(8px);
+}
+.btn-glass:hover { background: rgba(255, 255, 255, 0.12); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border-strong);
+}
+.btn-outline:hover { border-color: var(--accent-1); color: #fff; }
+
+.btn-ghost {
+  background: none;
+  color: var(--text-dim);
+  padding: 8px 14px;
+}
+.btn-ghost:hover { color: var(--text); }
+
+.btn-danger {
+  background: rgba(255, 45, 85, 0.14);
+  color: #ff8a9d;
+  border: 1px solid rgba(255, 45, 85, 0.3);
+}
+.btn-danger:hover { background: rgba(255, 45, 85, 0.24); }
+
+.btn-block { width: 100%; }
+.btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+
+/* ---------- Superfícies ---------- */
+.glass-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-card);
+}
+
+.theme-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- Campos ---------- */
+.theme-input,
+input.theme-input,
+textarea.theme-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.theme-input::placeholder { color: var(--text-faint); }
+.theme-input:focus {
+  border-color: var(--accent-1);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 45, 85, 0.15);
+}
+
+/* ---------- Badges / pílulas ---------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+}
+.pill-brand {
+  background: var(--gradient-brand-soft);
+  color: #ffb3c1;
+  border: 1px solid rgba(255, 45, 85, 0.3);
+}
+.pill-success { background: rgba(45, 224, 142, 0.15); color: var(--success); }
+
+/* ---------- Avatar com anel neon (perfil / conta) ---------- */
+.avatar-ring {
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  background: var(--gradient-brand);
+  padding: 2.5px;
+  display: inline-flex;
+}
+.avatar-ring img,
+.avatar-ring .avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-elevated);
+}
+.avatar-ring .avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ---------- Scrollbar discreta ---------- */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+
+/* ---------- Utilitários ---------- */
+.theme-empty-state { text-align: center; color: var(--text-faint); padding: 40px 16px; }
+.theme-divider { height: 1px; background: var(--border-soft); border: none; margin: 18px 0; }
+
+
+/* ============================================================
+   TRANSIÇÃO ENTRE PÁGINAS
+   Navegadores com suporte (Chrome/Edge/Safari novos) fazem um fade
+   suave ao trocar de página, em vez do "piscar branco". O topo e a
+   barra de baixo têm nome próprio: quando existem nas duas páginas
+   (ex: Início -> Filmes) ficam parados enquanto só o conteúdo troca;
+   quando só existem em uma (ex: Início -> Detalhes) somem/aparecem
+   com fade. Navegador sem suporte ignora tudo isso.
+============================================================ */
+@view-transition { navigation: auto; }
+
+.site-header { view-transition-name: site-header; }
+.bottom-nav { view-transition-name: bottom-nav; }
+
+::view-transition-old(root) { animation: 160ms ease-in both vt-out; }
+::view-transition-new(root) { animation: 280ms 40ms cubic-bezier(.2,.7,.2,1) both vt-in; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}

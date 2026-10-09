@@ -1,0 +1,147 @@
+.legal-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+  line-height: 1.7;
+}
+
+.legal-back {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #888;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.legal-back:hover { color: #f2f2f2; }
+
+.legal-page h1 {
+  font-size: 1.7rem;
+  margin-bottom: 6px;
+}
+
+.legal-updated {
+  color: #888;
+  font-size: 0.8rem;
+  margin-bottom: 24px;
+}
+
+.legal-disclaimer {
+  background: #17171d;
+  border: 1px solid #3a2626;
+  border-left: 3px solid #ff2d55;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #f0c9c9;
+  margin-bottom: 28px;
+}
+
+.legal-page h2 {
+  font-size: 1.15rem;
+  margin-top: 30px;
+  margin-bottom: 10px;
+  color: #fff;
+  border-bottom: 1px solid #26262e;
+  padding-bottom: 6px;
+}
+
+.legal-page h3 {
+  font-size: 1rem;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  color: #f2f2f2;
+}
+
+.legal-page p,
+.legal-page li {
+  color: #c9c9d2;
+  font-size: 0.92rem;
+}
+
+.legal-page ul {
+  padding-left: 20px;
+  margin: 10px 0;
+}
+
+.legal-page a { color: #ff8b8f; }
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 0.85rem;
+}
+
+.legal-table th,
+.legal-table td {
+  border: 1px solid #26262e;
+  padding: 8px 10px;
+  text-align: left;
+  color: #c9c9d2;
+}
+
+.legal-table th {
+  background: #17171d;
+  color: #f2f2f2;
+}
+
+/* Rodapé com links pras políticas, injetado em qualquer página */
+.site-footer {
+  border-top: 1px solid #22222a;
+  margin-top: 40px;
+  padding: 24px 20px 90px;
+  text-align: center;
+  color: #777;
+  font-size: 0.78rem;
+}
+
+.site-footer a {
+  color: #999;
+  text-decoration: none;
+  margin: 0 8px;
+}
+.site-footer a:hover { color: #f2f2f2; }
+
+.site-footer-tmdb {
+  margin-top: 10px;
+  color: #555;
+  font-size: 0.72rem;
+}
+
+/* Banner de consentimento de cookies */
+.cookie-consent-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4000;
+  background: #101014;
+  border-top: 1px solid #333;
+  padding: 14px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #ccc;
+  box-shadow: 0 -6px 20px rgba(0,0,0,0.4);
+}
+
+.cookie-consent-bar a { color: #ff8b8f; }
+
+.cookie-consent-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cookie-consent-btn {
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cookie-consent-btn.primary { background: #ff2d55; color: #fff; }
+.cookie-consent-btn.secondary { background: #2a2a32; color: #ddd; }

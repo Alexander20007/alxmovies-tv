@@ -1,0 +1,382 @@
+.sala-page {
+  padding: 12px 16px 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ---------- Cabeçalho da sala (glass) ---------- */
+.sala-app-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+}
+.sala-voltar {
+  color: #fff; text-decoration: none; font-size: 20px;
+  width: 38px; height: 38px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-soft);
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.sala-voltar:hover { background: rgba(255, 255, 255, 0.16); }
+.sala-room-meta { flex: 1; min-width: 160px; }
+.sala-room-meta h1 { font-size: 18px; font-weight: 800; margin-bottom: 3px; letter-spacing: -0.01em; }
+.sala-room-status { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-dim); flex-wrap: wrap; }
+.sala-status-badge { color: var(--success); font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.sala-status-badge::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success); box-shadow: 0 0 8px var(--success);
+  animation: sala-live-pulse 1.2s infinite;
+}
+.sala-status-badge.offline { color: var(--danger); }
+.sala-status-badge.offline::before { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+@keyframes sala-live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.sala-invite-btn {
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--border-soft); color: #eee;
+  border-radius: var(--radius-pill); padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
+  transition: 0.2s ease;
+}
+.sala-invite-btn:hover { border-color: var(--accent-1); box-shadow: 0 0 14px rgba(255, 45, 85, 0.3); }
+
+/* ---------- Layout principal: vídeo + barra lateral ---------- */
+.sala-corpo {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .sala-corpo { grid-template-columns: 1fr; }
+}
+
+/* ---------- Player ---------- */
+.sala-video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid rgba(255, 45, 85, 0.25);
+  box-shadow: 0 0 40px rgba(255, 45, 85, 0.16), var(--shadow-card);
+}
+.sala-video-wrapper video { width: 100%; height: 100%; background: #000; }
+
+.sala-video-wrapper:fullscreen,
+.sala-video-wrapper:-webkit-full-screen {
+  border-radius: 0;
+  aspect-ratio: unset;
+}
+.sala-video-wrapper:fullscreen video,
+.sala-video-wrapper:-webkit-full-screen video { object-fit: contain; }
+
+.sala-status {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; background: rgba(0,0,0,0.6); font-size: 14px;
+  z-index: 4;
+}
+
+.sala-conexao-banner {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  background: rgba(255, 204, 77, 0.95); color: #12121b; font-weight: 700;
+  font-size: 12px; padding: 6px 14px; border-radius: var(--radius-pill); z-index: 6;
+  white-space: nowrap;
+}
+
+/* Overlay "toque pra assistir" */
+.sala-play-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
+  cursor: pointer;
+  z-index: 5;
+}
+.sala-play-overlay-btn {
+  width: 78px; height: 78px; border-radius: 50%;
+  background: var(--gradient-brand); border: none; color: #fff; font-size: 28px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  padding-left: 4px; box-shadow: 0 0 40px rgba(255, 45, 85, 0.55);
+}
+.sala-play-overlay span { color: #eee; font-size: 14px; font-weight: 600; }
+
+/* Barra de player própria (progresso + controles + volume) */
+.sala-player-bar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 8px 14px 12px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.9), transparent);
+  z-index: 3;
+}
+.sala-progress {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px; border-radius: 4px;
+  background: rgba(255,255,255,0.25);
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.sala-progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--accent-1); border: 2px solid #fff;
+  box-shadow: 0 0 8px var(--accent-1);
+}
+.sala-progress::-moz-range-thumb {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--accent-1); border: 2px solid #fff;
+}
+.sala-progress:disabled { cursor: default; opacity: 0.6; }
+
+.sala-controls-row { display: flex; align-items: center; gap: 8px; }
+.sala-ctrl-spacer { flex: 1; }
+.sala-tempo { color: #ddd; font-size: 12px; white-space: nowrap; font-weight: 600; }
+.sala-ctrl-btn {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.08); color: #fff;
+  font-size: 16px; width: 36px; height: 36px; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: 0.15s ease;
+}
+.sala-ctrl-btn-small { font-size: 13px; }
+.sala-ctrl-btn:hover { background: rgba(255,255,255,0.2); }
+.sala-volume-box { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.sala-volume-box input[type="range"] { width: 70px; }
+
+.sala-qualidade-box { position: relative; }
+#sala-btn-legendas { font-size: 11px; font-weight: 700; }
+.sala-qualidade-menu {
+  position: absolute; bottom: 46px; right: 0;
+  background: var(--bg-glass); backdrop-filter: blur(20px);
+  border: 1px solid var(--border-soft); border-radius: 12px;
+  padding: 6px; min-width: 100px; z-index: 6;
+  box-shadow: var(--shadow-float);
+}
+.sala-qualidade-menu button {
+  display: block; width: 100%; background: none; border: none; color: #eee;
+  font-size: 13px; padding: 8px 10px; text-align: left; border-radius: 8px; cursor: pointer;
+}
+.sala-qualidade-menu button:hover { background: rgba(255,255,255,0.08); }
+.sala-qualidade-menu button.ativo { color: var(--accent-1); font-weight: 700; }
+
+.sala-sync-info { margin-top: 4px; font-size: 11px; color: var(--success); }
+.sala-sync-info.aviso { color: var(--warning); }
+
+/* Mensagens flutuantes por cima do vídeo */
+.sala-chat-overlay {
+  position: absolute; left: 14px; bottom: 78px; max-width: 68%;
+  display: flex; flex-direction: column; gap: 6px;
+  pointer-events: none; z-index: 2;
+}
+.sala-chat-overlay-msg {
+  background: rgba(15, 15, 22, 0.7); backdrop-filter: blur(6px); color: #fff;
+  font-size: 13px; padding: 7px 12px; border-radius: var(--radius-pill);
+  border: 1px solid rgba(255,255,255,0.08);
+  animation: sala-flutuante-in 0.25s ease, sala-flutuante-out 0.4s ease 4.2s forwards;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.sala-chat-overlay-msg strong {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  margin-right: 6px;
+  font-weight: 800;
+}
+@keyframes sala-flutuante-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sala-flutuante-out { to { opacity: 0; transform: translateY(-6px); } }
+
+/* Reações grandes flutuando */
+.sala-reacoes-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.sala-reacao-emoji {
+  position: absolute; bottom: 70px; font-size: 36px;
+  filter: drop-shadow(0 0 10px rgba(255, 45, 85, 0.5));
+  animation: sala-reacao-subir 2.4s ease-out forwards;
+}
+@keyframes sala-reacao-subir {
+  0% { opacity: 1; transform: translateY(0) scale(0.6) rotate(0deg); }
+  15% { transform: translateY(-20px) scale(1.15) rotate(-6deg); }
+  100% { opacity: 0; transform: translateY(-200px) scale(1.3) rotate(6deg); }
+}
+
+/* ---------- Prompt de avançar episódio ---------- */
+.sala-prompt-avancar {
+  margin-top: 12px; background: var(--bg-glass); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-soft); border-radius: var(--radius-md);
+  padding: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.sala-prompt-avancar p { flex: 1; min-width: 180px; font-size: 14px; }
+.sala-prompt-avancar button:not(.btn-primary) {
+  background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-soft);
+  padding: 10px 16px; border-radius: var(--radius-pill); cursor: pointer; font-weight: 600;
+}
+
+/* ---------- Barra do anfitrião ---------- */
+.sala-host-bar {
+  margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg-glass); backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 45, 85, 0.2);
+  border-radius: var(--radius-md); padding: 12px 14px;
+}
+.sala-host-pill {
+  font-size: 12px; color: var(--danger); font-weight: 800; margin-right: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sala-host-bar button {
+  background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-soft); padding: 9px 14px;
+  border-radius: var(--radius-pill); font-size: 13px; cursor: pointer; font-weight: 600;
+}
+.sala-host-bar button:hover { background: rgba(255,255,255,0.16); }
+.sala-btn-perigo { background: rgba(255, 45, 85, 0.14) !important; color: #ff8a8a; border-color: rgba(255,45,85,0.3) !important; }
+.sala-btn-perigo:hover { background: rgba(255, 45, 85, 0.26) !important; }
+
+/* ---------- Coluna lateral: participantes + chat ---------- */
+.sala-side-col { display: flex; flex-direction: column; gap: 14px; }
+
+.sala-participantes-box {
+  background: var(--bg-glass); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+}
+.sala-participantes-box h3 { font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+.sala-fila-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sala-fila-header h3 { margin-bottom: 0; }
+.sala-fila-add-btn {
+  background: rgba(255,255,255,0.08); color: #eee; border: 1px solid var(--border-soft); border-radius: var(--radius-pill);
+  padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 700;
+}
+.sala-fila-add-btn:hover { background: rgba(255,255,255,0.16); }
+.sala-fila-lista { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.sala-fila-item {
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+  background: rgba(0,0,0,0.25); border: 1px solid var(--border-soft); border-radius: 10px; padding: 6px 8px;
+}
+.sala-fila-item img { width: 28px; height: 42px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.sala-fila-item-info { flex: 1; min-width: 0; }
+.sala-fila-item-titulo { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.sala-fila-item-por { color: var(--text-faint); font-size: 11px; }
+.sala-fila-item button {
+  background: none; border: none; color: #ccc; font-size: 14px; cursor: pointer; padding: 4px;
+}
+.sala-fila-item button.tocar { color: var(--success); }
+.sala-fila-item button.remover { color: #ff8a8a; }
+.sala-fila-vazia { color: var(--text-faint); font-size: 12px; text-align: center; padding: 8px 0; }
+.sala-participantes-count { color: var(--text-dim); font-weight: 600; font-size: 12px; }
+.sala-participantes-lista { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+.sala-participante {
+  display: flex; align-items: center; gap: 8px; font-size: 13px;
+  background: rgba(0,0,0,0.25); border: 1px solid var(--border-soft); border-radius: 10px; padding: 6px 8px;
+}
+.sala-participante-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+  object-fit: cover;
+  background: var(--gradient-brand);
+}
+.sala-participante-nome { font-weight: 700; }
+.sala-participante-tag { font-size: 11px; color: var(--text-faint); }
+.sala-participante.eh-anfitriao .sala-participante-tag { color: var(--accent-1); font-weight: 700; }
+.sala-btn-tornar-anfitriao {
+  background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 4px; opacity: 0.7;
+}
+.sala-btn-tornar-anfitriao:hover { opacity: 1; }
+
+.sala-chat-col {
+  display: flex; flex-direction: column;
+  background: var(--bg-glass); backdrop-filter: blur(16px);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg); overflow: hidden;
+  height: 440px;
+}
+.sala-chat-mensagens { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.sala-chat-mensagens:empty::before {
+  content: "Nenhuma mensagem ainda. Diga oi 👋";
+  color: var(--text-faint); font-size: 13px; text-align: center; margin: auto;
+}
+.sala-chat-msg {
+  font-size: 13.5px; line-height: 1.4;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 8px 12px;
+  animation: sala-flutuante-in 0.2s ease;
+}
+.sala-chat-msg strong { color: var(--accent-1); margin-right: 6px; }
+.sala-chat-msg.minha { background: rgba(255, 45, 85, 0.1); border-color: rgba(255, 45, 85, 0.2); }
+.sala-chat-msg.minha strong { color: var(--success); }
+.sala-chat-msg.sistema { color: var(--text-faint); font-size: 12px; text-align: center; background: none; border: none; }
+
+.sala-reacoes-rapidas {
+  display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+.sala-reacoes-rapidas button {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border-soft); font-size: 16px; cursor: pointer;
+  padding: 6px 12px; border-radius: var(--radius-pill);
+  transition: 0.15s ease;
+}
+.sala-reacoes-rapidas button:hover { background: rgba(255,255,255,0.14); border-color: var(--border-strong); }
+.sala-reacoes-rapidas button:active { transform: scale(0.9); }
+
+.salas-erro.sala-chat-erro-show { padding: 4px 14px; }
+
+.sala-chat-form { display: flex; gap: 8px; border-top: 1px solid var(--border-soft); padding: 10px; }
+.sala-chat-form input {
+  flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: var(--radius-pill);
+  padding: 11px 16px; color: #fff; font-size: 14px;
+}
+.sala-chat-form input:focus { outline: none; border-color: var(--accent-1); }
+.sala-chat-form button {
+  background: var(--gradient-brand); color: #fff; border: none; width: 42px; height: 42px;
+  border-radius: 50%; cursor: pointer; font-weight: 900; flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(255, 45, 85, 0.45);
+}
+
+/* ---------- Telas estreitas de celular (modo normal, não "modo
+   computador"): chat menor, controles não espremem, texto encolhe
+   em vez de quebrar feio. ---------- */
+@media (max-width: 480px) {
+  .sala-page { padding: 8px 8px 20px; }
+  .sala-app-header { padding: 10px 12px; top: 4px; }
+  .sala-room-meta h1 { font-size: 15px; }
+  .sala-invite-btn { padding: 7px 10px; font-size: 12px; }
+  .sala-chat-col { height: 280px; }
+  .sala-participantes-lista { max-height: 120px; }
+  .sala-tempo { font-size: 10px; }
+  .sala-ctrl-btn { width: 30px; height: 30px; font-size: 14px; }
+  .sala-volume-box { display: none; } /* pouco espaço — o som já dá pra ajustar no aparelho */
+  .sala-controls-row { gap: 4px; }
+  .sala-host-bar { padding: 8px; gap: 6px; }
+  .sala-host-bar button { padding: 7px 10px; font-size: 12px; }
+  .sala-reacoes-rapidas button { font-size: 15px; padding: 5px 10px; }
+}
+
+/* ---------- Forçar paisagem (fallback CSS quando a API do
+   navegador não permite travar a orientação de verdade) ---------- */
+@media (orientation: portrait) {
+  body.sala-forcar-paisagem-css {
+    overflow: hidden;
+  }
+  body.sala-forcar-paisagem-css .sala-page {
+    position: fixed;
+    top: 0; left: 100%;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: 0 0;
+    transform: rotate(90deg);
+    overflow-y: auto;
+    padding-bottom: 40px;
+  }
+}

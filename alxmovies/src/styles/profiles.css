@@ -1,0 +1,455 @@
+/* ============================================================
+   "QUEM ESTÁ ASSISTINDO?" — seleção de perfis
+============================================================ */
+
+.profiles-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 1000px 600px at 50% -10%, rgba(255, 45, 85, 0.22), transparent 60%),
+    radial-gradient(ellipse 800px 500px at 100% 100%, rgba(176, 38, 255, 0.18), transparent 60%),
+    var(--bg);
+}
+
+.profiles-brand {
+  font-family: "Poppins", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.profiles-brand span { -webkit-text-fill-color: initial; color: var(--text); background: none; }
+
+.profiles-screen h1 {
+  font-family: "Poppins", sans-serif;
+  font-size: 2.3rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.profiles-subtitle {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+}
+
+.profiles-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  justify-content: center;
+  max-width: 760px;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  width: 120px;
+  animation: profile-in 0.4s ease both;
+}
+
+@keyframes profile-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.profile-avatar {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  border-radius: 26px;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  border: 2.5px solid var(--border-soft);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-item:hover .profile-avatar,
+.profile-item:focus-visible .profile-avatar {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    var(--gradient-brand) border-box;
+  transform: scale(1.06) translateY(-3px);
+  box-shadow: var(--glow-accent-lg);
+}
+
+.profile-name {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.profile-item:hover .profile-name { color: var(--text); }
+
+.kids-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(120deg, #ffcc4d, #ff8b3d);
+  color: #1a1000;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 12px rgba(255, 180, 60, 0.5);
+}
+
+/* Selo de "editável" nos avatares da tela de Gerenciar perfis */
+.edit-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(5, 5, 10, 0.75);
+  border: 1px solid var(--border-soft);
+  color: #fff;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.profile-item:hover .edit-badge {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  box-shadow: 0 0 12px rgba(255, 45, 85, 0.6);
+}
+
+/* Botão de voltar flutuante no topo das telas de perfil */
+.manage-back {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-soft);
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(10px);
+  transition: 0.15s ease;
+}
+.manage-back:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+
+@media (max-width: 560px) {
+  .manage-back { top: 14px; left: 14px; padding: 8px 13px; font-size: 0.8rem; }
+}
+
+.profile-item.add-profile .profile-avatar {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed var(--border-strong);
+  font-size: 2.4rem;
+  color: var(--text-faint);
+}
+
+.profile-item.add-profile:hover .profile-avatar {
+  border-color: var(--accent-1);
+  border-style: dashed;
+  color: var(--accent-1);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: var(--glow-accent);
+}
+
+.manage-link {
+  color: var(--text-dim);
+  margin-top: 26px;
+  text-decoration: none;
+  border: 1.5px solid var(--border-strong);
+  padding: 10px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  position: relative;
+  z-index: 1;
+}
+.manage-link:hover { border-color: var(--accent-1); color: #fff; background: rgba(255,45,85,0.08); }
+
+/* ---------- Modal de criar perfil / PIN ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 3, 6, 0.82);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 16px;
+}
+
+.modal-box {
+  background: rgba(16, 16, 24, 0.92);
+  border: 1px solid var(--border-soft);
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-float);
+  animation: auth-in 0.3s ease;
+}
+
+.modal-box-wide { max-width: 420px; }
+
+.modal-box h2 {
+  font-family: "Poppins", sans-serif;
+  font-size: 1.25rem;
+  margin-bottom: 2px;
+}
+
+.modal-hint {
+  color: var(--text-dim);
+  font-size: 0.83rem;
+  margin-top: -10px;
+}
+
+.modal-box input {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 1rem;
+  width: 100%;
+}
+.modal-box input:focus {
+  outline: none;
+  border-color: var(--accent-1);
+  background: rgba(255, 45, 85, 0.08);
+}
+
+.field-row {
+  display: flex;
+  gap: 10px;
+}
+.field-row input { flex: 1; min-width: 0; }
+
+.modal-box label.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.modal-box label.checkbox-line input { width: auto; }
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--gradient-brand);
+  color: white;
+  box-shadow: var(--glow-accent);
+}
+.btn-primary:hover { box-shadow: 0 0 34px rgba(255, 45, 85, 0.6); }
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ddd;
+  border: 1px solid var(--border-soft);
+}
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.12); }
+
+.btn-danger {
+  flex: none;
+  width: 100%;
+  background: rgba(255, 45, 85, 0.14);
+  color: #ff9baa;
+  border: 1px solid rgba(255, 45, 85, 0.3);
+  margin-top: 2px;
+}
+.btn-danger:hover { background: rgba(255, 45, 85, 0.24); }
+
+.error-text {
+  color: #ff6b81;
+  font-size: 0.85rem;
+}
+
+/* ---------- Seletor de avatar no modal de criação ---------- */
+.avatar-picker {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avatar-picker-preview {
+  width: 78px;
+  height: 78px;
+  min-width: 78px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  overflow: hidden;
+  border: 2px solid var(--border-soft);
+  position: relative;
+}
+
+.avatar-picker-preview img,
+.avatar-picker-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-picker-preview img { object-fit: cover; }
+
+.avatar-picker-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.btn-file {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ddd;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.83rem;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid var(--border-soft);
+}
+.btn-file:hover { background: rgba(255, 255, 255, 0.12); }
+
+.avatar-picker-or {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-swatch.selected {
+  border-color: #fff;
+  transform: scale(1.15);
+  box-shadow: var(--glow-accent);
+}
+
+/* ---------- Classificação indicativa (filtro por idade) ---------- */
+.rating-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.rating-field label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.rating-field select {
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.rating-field.disabled { opacity: 0.45; pointer-events: none; }
+.checkbox-line.disabled { opacity: 0.45; pointer-events: none; }
+
+.genre-prefs-field label {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.genre-prefs-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 4px 10px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+}
+
+.genre-pref-item { font-size: 0.78rem; }
+
+@media (max-width: 480px) {
+  .profiles-screen h1 { font-size: 1.7rem; }
+}

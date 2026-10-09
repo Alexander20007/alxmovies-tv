@@ -1,0 +1,124 @@
+name: Build Android APK
+
+# Gera o APK do ALXmovies e publica em "Releases" (dá pra baixar direto pelo celular).
+# Dispara: ao enviar o .zip do projeto / mexer no projeto, ou manualmente em Actions → Build Android APK → Run workflow.
+on:
+  push:
+    branches: [main, master]
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Se houver um arquivo .zip na raiz do repositório (ex.: alxmovies-android.zip), o app é descompactado dele.
+      # Isso permite subir o projeto inteiro pelo celular, com um único arquivo.
+      - name: Localizar o projeto
+        run: |
+          ZIP=$(find . -maxdepth 1 -name "*.zip" | head -1)
+          if [ -n "$ZIP" ]; then
+            echo "Descompactando $ZIP"
+            rm -rf _app && mkdir _app && unzip -q "$ZIP" -d _app
+            DIR=_app
+            if [ ! -f "$DIR/package.json" ]; then
+              SUB=$(find _app -maxdepth 2 -name package.json -not -path "*/node_modules/*" | head -1)
+              [ -n "$SUB" ] && DIR=$(dirname "$SUB")
+            fi
+            echo "APP_DIR=$DIR" >> "$GITHUB_ENV"
+          else
+            echo "APP_DIR=." >> "$GITHUB_ENV"
+          fi
+          grep APP_DIR "$GITHUB_ENV"
+          test -f "$(grep APP_DIR "$GITHUB_ENV" | cut -d= -f2)/package.json" || { echo "✗ package.json não encontrado: envie o projeto (zip) para o repositório."; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependências
+        working-directory: ${{ env.APP_DIR }}
+        run: npm install --no-audit --no-fund
+
+      - name: Compilar o site (Vite)
+        working-directory: ${{ env.APP_DIR }}
+        run: npm run build
+
+      - name: Criar o projeto Android (Capacitor)
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          [ -d android ] || npx cap add android
+          npx cap sync android
+
+      - name: Ícone e tela de abertura
+        working-directory: ${{ env.APP_DIR }}
+        run: npx --yes @capacitor/assets generate --android || echo "⚠ Não foi possível gerar ícones; usando o padrão."
+
+      - name: Ajustar o projeto Android
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
+        run: node scripts/android/patch-android.mjs
+
+      - name: Aceitar licenças e instalar o SDK do Android
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: Compilar o APK (Gradle)
+        working-directory: ${{ env.APP_DIR }}/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Alinhar e assinar o APK
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "APK sem assinatura: $UNSIGNED"
+
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > release.keystore
+            KS=release.keystore; ALIAS="$KS_ALIAS"; PASS="$KS_PASS"
+            echo "Assinando com a SUA chave (secrets)."
+          else
+            KS=keystore/alxmovies-sideload.p12; ALIAS=alxmovies; PASS=alxmovies123
+            echo "Assinando com a chave de teste do repositório (serve para instalar direto no celular)."
+          fi
+
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign --ks "$KS" --ks-key-alias "$ALIAS" --ks-pass "pass:$PASS" --key-pass "pass:$PASS" \
+            --out ALXmovies.apk aligned.apk
+          "$BT/apksigner" verify --verbose ALXmovies.apk | head -5
+          ls -la ALXmovies.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ALXmovies-apk
+          path: ${{ env.APP_DIR }}/ALXmovies.apk
+
+      - name: Publicar em Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: ALXmovies 1.0.${{ github.run_number }}
+          body: "APK Android do ALXmovies. Baixe o arquivo ALXmovies.apk abaixo e instale no celular."
+          files: ${{ env.APP_DIR }}/ALXmovies.apk

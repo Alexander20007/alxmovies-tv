@@ -1,0 +1,71 @@
+/* ============================================================
+   Indicadores de carregamento (valem no site e no app)
+============================================================ */
+.spinner {
+  display: inline-block; flex: none; border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.22); border-top-color: #ff2d55;
+  animation: alx-spin 0.7s linear infinite; vertical-align: middle;
+}
+@keyframes alx-spin { to { transform: rotate(360deg); } }
+.page-spinner { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
+.is-loading { display: inline-flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.85; cursor: progress; }
+.is-loading .spinner { width: 15px; height: 15px; border-width: 2px; border-color: rgba(255, 255, 255, 0.35); border-top-color: #fff; }
+
+.global-busy {
+  position: fixed; left: 50%; z-index: 99999; pointer-events: none;
+  top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px);
+  transform: translateX(-50%); width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(14, 14, 20, 0.86); border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55); animation: alx-pop 0.18s ease-out both;
+}
+@keyframes alx-pop { from { opacity: 0; transform: translateX(-50%) scale(0.6); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+
+.native-toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 99998; max-width: 86%;
+  bottom: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 96px);
+  background: rgba(30, 30, 38, 0.96); color: #f2f2f2; padding: 10px 16px; border-radius: 999px;
+  font: 600 0.82rem system-ui, sans-serif; box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55); text-align: center;
+}
+
+/* ============================================================
+   Só no app Android (html.native) — infraestrutura
+   (o visual Material 3 está em native-m3.css)
+============================================================ */
+:root {
+  --sat: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --sab: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --bar-top: 0px;
+  --bar-bottom: 0px;
+}
+html[data-topbar="on"] { --bar-top: calc(64px + var(--sat)); }
+html[data-nav="on"] { --bar-bottom: calc(80px + var(--sab)); }
+
+html.native, html.native body { overscroll-behavior: none; }
+html.native body { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+html.native * { -webkit-tap-highlight-color: transparent; }
+html.native input, html.native textarea, html.native .msg-bubble p, html.native .guest-code-value { -webkit-user-select: text; user-select: text; }
+
+/* o conteúdo começa abaixo da barra superior e termina acima da navegação inferior */
+html.native body { padding-top: var(--bar-top); padding-bottom: calc(var(--bar-bottom) + var(--sab)); }
+html[data-nav="on"] body { padding-bottom: calc(var(--bar-bottom) + 12px); }
+
+html.native .profiles-screen, html.native .auth-screen, html.native .account-gate {
+  padding-top: var(--sat);
+}
+html.native .modal-overlay, html.native .salas-modal, html.native .soc-modal, html.native .guest-code-overlay {
+  padding-bottom: var(--sab);
+}
+
+/* teclado aberto: some o que ficaria por cima do campo de texto */
+html.kb-open .nnav, html.kb-open .ai-assistant-toggle, html.kb-open .guest-widget, html.kb-open .birthday-widget { display: none !important; }
+html.kb-open { --bar-bottom: 0px; }
+html.kb-open body { padding-bottom: 0; }
+
+/* sala: vídeo em tela cheia dentro do app (sem usar a Fullscreen API do navegador) */
+html.native .sala-video-wrapper.sala-native-fs {
+  position: fixed; inset: 0; z-index: 100000; width: 100vw; height: 100vh; max-width: none; border-radius: 0; background: #000;
+}
+
+/* no app não existem: aviso de cookies do site, rodapé de políticas e botão de tela cheia do player */
+html.native .cookie-consent-bar, html.native .site-footer, html.native .axp-fs-btn { display: none !important; }

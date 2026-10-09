@@ -1,0 +1,72 @@
+.search-header {
+  padding: 24px;
+}
+
+.search-header h1 {
+  font-size: 1.4rem;
+  margin-bottom: 16px;
+}
+
+.filters-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filters-bar select {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid #444;
+  background: #1c1c22;
+  color: #f2f2f2;
+  font-size: 0.9rem;
+}
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  padding: 0 24px 32px;
+}
+
+@media (max-width: 480px) {
+  .search-results-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 0 12px 24px;
+  }
+}
+
+/* Dentro do grid de busca/lista, os cards ocupam a célula inteira
+   em vez do tamanho fixo usado nas fileiras horizontais da home */
+.search-results-grid .media-card {
+  width: 100%;
+}
+
+.mylist-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mylist-tab {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid #444;
+  background: transparent;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.mylist-tab.active {
+  background: #ff2d55;
+  border-color: #ff2d55;
+  color: #fff;
+}
+
+.search-empty {
+  padding: 40px 24px;
+  color: #888;
+  text-align: center;
+}

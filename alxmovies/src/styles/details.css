@@ -1,0 +1,786 @@
+/* ============================================================
+   HERO — fundo com pôster centralizado sobreposto, título embaixo
+============================================================ */
+.details-hero {
+  position: relative;
+  margin-top: -66px;
+  padding-top: 66px; /* fica atrás do header transparente */
+}
+
+.d2-backdrop-wrap {
+  position: relative;
+  height: 46vh;
+  min-height: 260px;
+  max-height: 420px;
+  overflow: hidden;
+}
+.d2-backdrop-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.75;
+}
+.d2-backdrop-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, var(--bg, #07070c) 10%, rgba(7,7,12,0.45) 60%, rgba(7,7,12,0.15) 100%);
+}
+
+.d2-poster-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 42%);
+  z-index: 2;
+}
+.d2-poster {
+  position: relative;
+  width: 148px;
+  aspect-ratio: 2/3;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-card, #1a1a24);
+}
+.d2-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.d2-poster .details-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+}
+
+.details-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gradient-brand, linear-gradient(135deg,#ff2d55,#a02bff));
+  color: #fff;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill, 20px);
+  font-size: 0.68rem;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+
+/* Telas de erro/bloqueio (sem pôster/hero, só uma mensagem central) */
+.details-content { max-width: 480px; margin: 60px auto; padding: 0 20px; text-align: center; }
+.details-content h1 { font-size: 1.3rem; font-weight: 800; margin-bottom: 10px; }
+.details-overview { color: var(--text-dim, #aaa); font-size: 0.9rem; line-height: 1.5; margin-bottom: 18px; }
+.details-actions { display: flex; flex-direction: column; gap: 10px; }
+
+.d2-title {
+  text-align: center;
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: calc(42% + 20px) 20px 6px;
+  padding-top: 10px;
+}
+
+.d2-meta {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-dim, #aaa);
+  font-size: 0.82rem;
+  margin: 0 20px 22px;
+  text-align: center;
+}
+.d2-meta span:last-child { color: #ffcc33; font-weight: 700; }
+
+/* ============================================================
+   AÇÕES — botão cheio + fileiras de dois
+============================================================ */
+.d2-actions { padding: 0 20px; max-width: 480px; margin: 0 auto; }
+
+.action-btn {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 15px 20px;
+  border-radius: var(--radius-md, 14px);
+  border: none;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: 0.2s ease;
+  margin-bottom: 10px;
+  font-family: inherit;
+  text-decoration: none;
+  color: #fff;
+}
+
+.action-btn.play {
+  background: var(--gradient-brand, linear-gradient(135deg,#ff2d55,#a02bff));
+  box-shadow: var(--glow-accent, 0 0 30px rgba(255,45,85,0.4));
+}
+.action-btn.play:hover { filter: brightness(1.08); }
+
+.action-btn.secondary,
+.action-btn:not(.play):not(.active) {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.1));
+}
+.action-btn:not(.play):hover { background: rgba(255, 255, 255, 0.14); }
+
+.action-btn.active {
+  background: rgba(255, 45, 85, 0.18);
+  border: 1px solid var(--accent-1, #ff2d55);
+  color: #ff8ba0;
+}
+
+.d2-row { display: flex; gap: 10px; }
+.d2-row .action-btn { flex: 1; margin-bottom: 10px; }
+
+.rating-group {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+.rating-group button {
+  flex: 1;
+  font-size: 1.05rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.1));
+  border-radius: var(--radius-md, 14px);
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.rating-group button.active {
+  background: rgba(255, 45, 85, 0.18);
+  border-color: var(--accent-1, #ff2d55);
+}
+
+.rating-summary {
+  color: var(--text-dim, #aaa);
+  font-size: 0.8rem;
+  text-align: center;
+  margin: -2px 0 10px;
+}
+
+/* ============================================================
+   ABAS — Visão geral / Informações / Episódios
+============================================================ */
+.d2-tabs {
+  display: flex;
+  gap: 22px;
+  margin: 26px 20px 4px;
+  padding: 13px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  border-radius: 18px;
+  max-width: 480px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.d2-tabs::-webkit-scrollbar { display: none; }
+@media (min-width: 520px) { .d2-tabs { margin-left: auto; margin-right: auto; } }
+
+.d2-tab {
+  background: none;
+  border: none;
+  color: var(--text-faint, #777);
+  font-weight: 800;
+  font-size: 0.86rem;
+  cursor: pointer;
+  padding-bottom: 5px;
+  position: relative;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.d2-tab.active { color: #fff; }
+.d2-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -5px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gradient-brand, #ff2d55);
+}
+
+.d2-panel { display: none; }
+.d2-panel.active { display: block; }
+
+.d2-sinopse-card {
+  background: var(--bg-card, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  border-radius: 18px;
+  padding: 18px;
+}
+.d2-sinopse-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 10px; }
+.d2-sinopse-card p {
+  color: var(--text-dim, #bbb);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.d2-sinopse-more {
+  color: var(--accent-1, #ff2d55);
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.d2-info-grid {
+  background: var(--bg-card, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  border-radius: 18px;
+  padding: 4px 18px;
+}
+.d2-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.06));
+  font-size: 0.86rem;
+}
+.d2-info-row:last-child { border-bottom: none; }
+.d2-info-row b { color: var(--text-faint, #888); font-weight: 600; flex-shrink: 0; }
+.d2-info-row span { color: #eee; font-weight: 700; text-align: right; }
+
+.details-section {
+  padding: 24px 20px 4px;
+  max-width: 900px;
+}
+
+.details-section h3 {
+  font-size: 1.02rem;
+  font-weight: 800;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.details-section h3::before {
+  content: "";
+  width: 3px;
+  height: 15px;
+  background: var(--gradient-brand, linear-gradient(180deg, #ff2d55, #a02bff));
+  border-radius: 10px;
+  display: inline-block;
+}
+
+.cast-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+.cast-track::-webkit-scrollbar { display: none; }
+
+.cast-item {
+  flex: 0 0 auto;
+  width: 68px;
+  text-align: center;
+}
+
+.cast-item img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-elevated, #333);
+  border: 2px solid var(--border-soft, rgba(255,255,255,0.08));
+}
+
+.cast-item .cast-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 7px;
+  color: #ddd;
+  line-height: 1.15;
+}
+
+.cast-item .cast-character {
+  font-size: 0.66rem;
+  color: var(--text-faint, #888);
+  line-height: 1.15;
+}
+
+.comment-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.comment-form textarea {
+  flex: 1;
+  min-width: 200px;
+  min-height: 46px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  background: rgba(255, 255, 255, 0.04);
+  color: #f2f2f2;
+  font-family: inherit;
+  resize: vertical;
+}
+.comment-form textarea:focus { outline: none; border-color: var(--accent-1, #ff2d55); }
+
+.comment-form .action-btn {
+  width: auto;
+  margin-bottom: 0;
+  background: var(--gradient-brand, linear-gradient(135deg,#ff2d55,#a02bff));
+  border: none;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 20px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 12px;
+}
+
+.comment-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gradient-brand, #333);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.comment-body { flex: 1; }
+
+.comment-meta {
+  font-size: 0.85rem;
+  color: var(--text-dim, #999);
+  margin-bottom: 4px;
+}
+.comment-meta strong { color: var(--text, #fff); }
+
+.comment-body p {
+  color: #ddd;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.comment-delete {
+  background: none;
+  border: none;
+  color: #ff2d5599;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.comment-reply {
+  margin-left: 48px;
+  opacity: 0.95;
+}
+
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.comment-like-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim, #aaa);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.comment-like-btn.active { color: #ff6b81; }
+.comment-like-btn:disabled { opacity: 0.6; }
+
+.comment-reply-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim, #999);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.comment-reply-btn:hover { color: #f2f2f2; }
+
+.comment-reply-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.comment-reply-form textarea {
+  flex: 1;
+  min-height: 36px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  background: rgba(255,255,255,0.03);
+  color: #f2f2f2;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+.comment-reply-submit {
+  align-self: flex-end;
+  background: var(--gradient-brand, #ff2d55);
+  border: none;
+  color: #fff;
+  border-radius: var(--radius-md, 10px);
+  padding: 9px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.comment-reply-submit:disabled { opacity: 0.6; }
+
+/* ============================================================
+   EPISÓDIOS (aba) — cards expansíveis com sinopse
+============================================================ */
+.d2-ep-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.d2-ep-head-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.1));
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.86rem;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill, 999px);
+  cursor: pointer;
+  font-family: inherit;
+}
+.d2-ep-head-btn:hover { background: rgba(255, 255, 255, 0.14); }
+
+.d2-ep-list { display: flex; flex-direction: column; gap: 10px; }
+.d2-ep-status { color: var(--text-faint, #888); font-size: 0.85rem; text-align: center; padding: 20px 0; }
+
+.d2-ep {
+  background: var(--bg-card, #1c1c1e);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+.d2-ep.playing { border-color: var(--accent-1, #ff2d55); }
+
+.d2-ep-head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.d2-ep-thumb {
+  position: relative;
+  width: 108px;
+  aspect-ratio: 16/9;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-elevated, #222);
+}
+.d2-ep-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.d2-ep-thumb .d2-ep-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.d2-ep-thumb .d2-ep-play span {
+  width: 30px; height: 30px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+.d2-ep.playing .d2-ep-thumb .d2-ep-play span { background: var(--gradient-brand, #ff2d55); }
+
+.d2-ep-info { flex: 1; min-width: 0; }
+.d2-ep-info .t { font-weight: 800; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d2-ep-info .d { color: var(--text-faint, #888); font-size: 0.72rem; margin-top: 3px; }
+
+.d2-ep-exp {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-dim, #ccc);
+  transition: transform 0.2s ease;
+}
+.d2-ep.open .d2-ep-exp { transform: rotate(180deg); }
+
+.d2-ep-detail {
+  display: none;
+  padding: 0 14px 16px;
+  color: var(--text-dim, #aaa);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.d2-ep.open .d2-ep-detail { display: block; }
+.d2-ep-detail b { color: #fff; }
+.d2-ep-watch-btn {
+  margin-top: 12px;
+  background: var(--gradient-brand, #ff2d55);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+  width: 100%;
+}
+.d2-ep-soon { opacity: 0.55; }
+.d2-ep-soon .d2-ep-head-row { cursor: default; }
+
+/* ============================================================
+   MODAL DE TEMPORADA — folha inferior
+============================================================ */
+.d2-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 400;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.d2-modal.show { display: flex; }
+.d2-modal-box {
+  background: var(--bg-glass, #1e1e24);
+  backdrop-filter: blur(22px);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 24px 24px 0 0;
+  padding: 22px 18px;
+  max-height: 78vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  border-bottom: none;
+}
+.d2-modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.d2-modal-head h2 { font-size: 1.1rem; font-weight: 800; }
+.d2-modal-head small { color: var(--text-faint, #888); font-size: 0.78rem; display: block; margin-top: 2px; }
+.d2-modal-close { background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; padding: 2px; }
+
+.d2-season-row {
+  padding: 15px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.d2-season-row.active { border-color: var(--accent-1, #ff2d55); background: rgba(255, 45, 85, 0.1); }
+.d2-season-dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong, #555);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.d2-season-row.active .d2-season-dot { border-color: var(--accent-1, #ff2d55); }
+.d2-season-row.active .d2-season-dot::after {
+  content: "";
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent-1, #ff2d55);
+}
+
+@media (max-width: 420px) {
+  .d2-poster { width: 128px; }
+  .d2-title { font-size: 1.45rem; }
+  .d2-ep-thumb { width: 92px; }
+}
+
+/* ============================================================
+   BOTÕES DA FICHA — grade 2 colunas, todos com o MESMO tamanho
+   Séries:                    Filmes:
+     ▶ Assistir                 ▶ Assistir
+     Temporada | Episódios      Lista | Sala
+     Lista | Sala               Compartilhar | Comentar
+     Compartilhar | Comentar
+============================================================ */
+.d2-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.d2-grid .action-btn {
+  margin: 0;
+  height: 52px;
+  padding: 0 10px;
+  min-width: 0;
+  white-space: nowrap;
+  font-size: clamp(0.78rem, 3.5vw, 0.92rem);
+}
+.d2-grid .span-2 { grid-column: 1 / -1; }
+.d2-actions .rating-group button { height: 52px; }
+
+a.d2-tab { text-decoration: none; display: inline-block; }
+
+/* ============================================================
+   COMENTAR — aba flutuante (folha inferior no celular, caixa
+   centralizada no desktop)
+============================================================ */
+.cm-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 120px;
+  padding: 14px;
+  border-radius: var(--radius-md, 14px);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.1));
+  background: rgba(255, 255, 255, 0.05);
+  color: #f2f2f2;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: none;
+}
+.cm-input:focus { outline: none; border-color: var(--accent-1, #ff2d55); }
+.cm-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.cm-count { color: var(--text-faint, #888); font-size: 0.78rem; }
+.cm-foot .cm-submit {
+  width: auto;
+  height: 48px;
+  margin: 0;
+  padding: 0 30px;
+}
+@media (min-width: 640px) {
+  .cm-sheet { align-items: center; }
+  .cm-sheet .d2-modal-box {
+    border-radius: 24px;
+    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  }
+}
+
+/* ============================================================
+   PÁGINAS SECUNDÁRIAS (episodes.html e info.html)
+============================================================ */
+.sub-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px 110px; /* folga pra barra inferior */
+}
+.sub-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 14px;
+}
+.sub-back {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 3px;
+  border-radius: 50%;
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.1));
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.sub-back:hover { background: rgba(255, 255, 255, 0.14); }
+.sub-top-info { min-width: 0; }
+.sub-top-info h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sub-top-info small { color: var(--text-faint, #888); font-size: 0.78rem; }
+
+.sub-empty { text-align: center; padding: 70px 20px; }
+.sub-empty h1 { font-size: 1.2rem; margin-bottom: 10px; }
+.sub-empty p { color: var(--text-dim, #aaa); margin-bottom: 18px; line-height: 1.5; }
+.sub-empty .action-btn { width: auto; display: inline-flex; padding: 0 24px; height: 50px; }
+
+/* Episódios */
+.ep-toolbar { margin-bottom: 14px; }
+.ep-season-btn {
+  width: auto;
+  display: inline-flex;
+  height: 46px;
+  margin: 0;
+  padding: 0 22px;
+}
+.d2-ep-thumb-btn {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  color: inherit;
+}
+.d2-ep-info { cursor: pointer; }
+.d2-ep-exp { border: none; cursor: pointer; }
+.d2-ep-soon .d2-ep-info { cursor: default; }
+
+/* Informações */
+.info-wrap { max-width: 720px; }
+.info-section { padding: 26px 0 4px; max-width: none; }
+.info-cast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 18px 10px;
+}
+.info-cast-grid .cast-item { width: auto; }
+.info-similar { margin: 18px -16px 0; }
