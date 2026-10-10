@@ -65,6 +65,14 @@ jobs:
           [ -d android ] || npx cap add android
           npx cap sync android
 
+      # Push com o app fechado (opcional): só se o secret GOOGLE_SERVICES_JSON existir. Sem ele o APK compila normal, sem Firebase.
+      - name: Firebase (google-services.json)
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GSJ" ]; then printf '%s' "$GSJ" > android/app/google-services.json && echo "Firebase ligado."; else echo "Sem Firebase (secret não cadastrado)."; fi
+
       - name: Ícone e tela de abertura
         working-directory: ${{ env.APP_DIR }}
         run: npx --yes @capacitor/assets generate --android || echo "⚠ Não foi possível gerar ícones; usando o padrão."
@@ -122,3 +130,4 @@ jobs:
           name: ALXmovies 1.0.${{ github.run_number }}
           body: "APK Android do ALXmovies. Baixe o arquivo ALXmovies.apk abaixo e instale no celular."
           files: ${{ env.APP_DIR }}/ALXmovies.apk
+          
