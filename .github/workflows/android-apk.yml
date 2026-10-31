@@ -57,6 +57,11 @@ jobs:
 
       - name: Compilar o site (Vite)
         working-directory: ${{ env.APP_DIR }}
+        env:
+          # Padrão: proxy DESLIGADO (variável vazia = tudo direto, como antes). Para ligar crie a variável VITE_USE_PROXY = true.
+          VITE_USE_PROXY: ${{ vars.VITE_USE_PROXY }}
+          # Start.io: modo de TESTE (anúncios de mentira). Para anúncios reais crie a variável ADS_TEST = false.
+          VITE_ADS_TEST: ${{ vars.ADS_TEST }}
         run: npm run build
 
       - name: Criar o projeto Android (Capacitor)
@@ -77,11 +82,45 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         run: npx --yes @capacitor/assets generate --android || echo "⚠ Não foi possível gerar ícones; usando o padrão."
 
+      # Versão = MAIOR.MENOR (arquivo version.txt, ex.: 1.1) + número que sobe a cada build e volta a 0 quando o MAIOR.MENOR muda.
+      # Para ir de 1.1.x para 1.2.0 basta trocar o conteúdo de version.txt para 1.2.
+      - name: Definir a versão
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE=$(tr -d ' \r\n' < version.txt 2>/dev/null || true)
+          [[ "$BASE" =~ ^[0-9]+\.[0-9]+$ ]] || BASE="1.0"
+          LAST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)
+          LAST=${LAST#v}
+          PATCH=0
+          if [[ "$LAST" =~ ^([0-9]+\.[0-9]+)\.([0-9]+)$ ]]; then
+            LBASE="${BASH_REMATCH[1]}"; LPATCH="${BASH_REMATCH[2]}"
+            # nunca volta para uma versão menor que a última publicada
+            if [ "$BASE" != "$LBASE" ] && [ "$(printf '%s\n%s\n' "$BASE" "$LBASE" | sort -V | tail -1)" = "$LBASE" ]; then
+              echo "⚠ version.txt ($BASE) é menor que a última versão ($LAST); mantendo $LBASE."
+              BASE="$LBASE"
+            fi
+            if [ "$BASE" = "$LBASE" ]; then PATCH=$((LPATCH + 1)); fi
+          fi
+          echo "VERSION=$BASE.$PATCH" >> "$GITHUB_ENV"
+          echo "Versão deste build: $BASE.$PATCH (última publicada: ${LAST:-nenhuma})"
+
+      # Novidades que aparecem na tela de atualização (arquivo release-notes.md do projeto).
+      - name: Novidades da versão
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          if [ ! -s release-notes.md ]; then
+            printf '## Melhorado\n- Melhorias de desempenho e correções\n' > release-notes.md
+          fi
+          cat release-notes.md
+
       - name: Ajustar o projeto Android
         working-directory: ${{ env.APP_DIR }}
         env:
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 1.0.${{ github.run_number }}
+          VERSION_NAME: ${{ env.VERSION }}
+          VITE_USE_PROXY: ${{ vars.VITE_USE_PROXY }}
         run: node scripts/android/patch-android.mjs
 
       - name: Aceitar licenças e instalar o SDK do Android
@@ -116,6 +155,16 @@ jobs:
           "$BT/apksigner" sign --ks "$KS" --ks-key-alias "$ALIAS" --ks-pass "pass:$PASS" --key-pass "pass:$PASS" \
             --out ALXmovies.apk aligned.apk
           "$BT/apksigner" verify --verbose ALXmovies.apk | head -5
+          echo "=============================================================="
+          echo "LINKS QUE ABREM O APP (App Links)"
+          HEX=$("$BT/apksigner" verify --print-certs ALXmovies.apk | grep -i "SHA-256 digest" | head -1 | sed 's/.*: *//' | tr 'a-f' 'A-F')
+          FP=$(echo "$HEX" | sed 's/../&:/g; s/:$//')
+          echo "Impressão digital da chave que assinou este APK:"
+          echo "$FP"
+          echo ""
+          echo "Conteúdo pronto para public/.well-known/assetlinks.json:"
+          echo '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.alxmovies.app","sha256_cert_fingerprints":["'"$FP"'"]}}]'
+          echo "=============================================================="
           ls -la ALXmovies.apk
 
       - uses: actions/upload-artifact@v4
@@ -126,8 +175,21 @@ jobs:
       - name: Publicar em Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: ALXmovies 1.0.${{ github.run_number }}
-          body: "APK Android do ALXmovies. Baixe o arquivo ALXmovies.apk abaixo e instale no celular."
+          tag_name: v${{ env.VERSION }}
+          name: ALXmovies ${{ env.VERSION }}
+          body_path: ${{ env.APP_DIR }}/release-notes.md
           files: ${{ env.APP_DIR }}/ALXmovies.apk
-          
+
+      # Avisa os celulares (push do Firebase) que existe versão nova. Só roda se os 2 secrets abaixo existirem.
+      - name: Avisar celulares (push)
+        continue-on-error: true
+        env:
+          PUSH_SEND_URL: ${{ secrets.PUSH_SEND_URL }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+        run: |
+          if [ -z "$PUSH_SEND_URL" ] || [ -z "$PUSH_SECRET" ]; then echo "Push de atualização não configurado (secrets PUSH_SEND_URL e PUSH_SECRET) — pulando."; exit 0; fi
+          sleep 15
+          curl -fsS -X POST "$PUSH_SEND_URL" \
+            -H "x-push-secret: $PUSH_SECRET" -H "Content-Type: application/json" \
+            -d '{"table":"app_update","record":{"version":"${{ env.VERSION }}"}}'
+            
