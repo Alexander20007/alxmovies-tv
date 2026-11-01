@@ -60,9 +60,16 @@ jobs:
         env:
           # Padrão: proxy DESLIGADO (variável vazia = tudo direto, como antes). Para ligar crie a variável VITE_USE_PROXY = true.
           VITE_USE_PROXY: ${{ vars.VITE_USE_PROXY }}
-          # Start.io: modo de TESTE (anúncios de mentira). Para anúncios reais crie a variável ADS_TEST = false.
-          VITE_ADS_TEST: ${{ vars.ADS_TEST }}
-        run: npm run build
+          # Start.io: modo de TESTE (anúncios de mentira). Para anúncios reais crie ADS_TEST = false
+          # (pode ser em Variables OU em Secrets; os dois funcionam).
+          VITE_ADS_TEST: ${{ vars.ADS_TEST || secrets.ADS_TEST }}
+        run: |
+          case "$(printf '%s' "$VITE_ADS_TEST" | tr '[:upper:]' '[:lower:]' | tr -d ' ')" in
+            false|0|no|nao|não|off) echo "📢 Anúncios: modo REAL" ;;
+            "") echo "📢 Anúncios: modo TESTE (ADS_TEST não definido)" ;;
+            *)  echo "📢 Anúncios: modo TESTE (ADS_TEST tem um valor diferente de false)" ;;
+          esac
+          npm run build
 
       - name: Criar o projeto Android (Capacitor)
         working-directory: ${{ env.APP_DIR }}
