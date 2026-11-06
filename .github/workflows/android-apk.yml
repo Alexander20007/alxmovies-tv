@@ -42,6 +42,21 @@ jobs:
           grep APP_DIR "$GITHUB_ENV"
           test -f "$(grep APP_DIR "$GITHUB_ENV" | cut -d= -f2)/package.json" || { echo "✗ package.json não encontrado: envie o projeto (zip) para o repositório."; exit 1; }
 
+      # Nova tela inicial: os arquivos da pasta overrides/ são copiados por cima do projeto do zip
+      # e a rota da Home passa a usar o HomeNova. Para voltar à tela antiga, apague a pasta overrides/.
+      - name: Aplicar a nova tela inicial
+        run: |
+          if [ -d overrides ]; then
+            F="$APP_DIR/src/App.tsx"
+            grep -q '"@/pages/Home"' "$F" || { echo "✗ $F não tem o import esperado da Home; a nova tela não foi aplicada."; exit 1; }
+            cp -r overrides/. "$APP_DIR"/
+            sed -i 's#"@/pages/Home"#"@/pages/HomeNova"#' "$F"
+            grep -n "HomeNova" "$F"
+            echo "✓ Nova tela inicial aplicada."
+          else
+            echo "Sem pasta overrides/ — tela inicial original."
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -199,4 +214,3 @@ jobs:
           curl -fsS -X POST "$PUSH_SEND_URL" \
             -H "x-push-secret: $PUSH_SECRET" -H "Content-Type: application/json" \
             -d '{"table":"app_update","record":{"version":"${{ env.VERSION }}"}}'
-            
