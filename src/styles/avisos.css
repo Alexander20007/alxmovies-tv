@@ -1,0 +1,53 @@
+/* Avisos do admin e modo offline */
+.ann-overlay { position: fixed; inset: 0; z-index: 9500; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, 0.72); }
+.ann-card { width: min(380px, 100%); display: grid; gap: 10px; justify-items: center; text-align: center; padding: 24px 20px 20px; border-radius: 24px; background: #16161c; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); }
+.ann-ico { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: rgba(229, 9, 20, 0.18); color: #ff6a72; }
+.ann-card small { opacity: 0.65; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+.ann-card h2 { margin: 0; font-size: 1.25rem; font-weight: 900; }
+.ann-card p { margin: 0; line-height: 1.55; opacity: 0.9; white-space: pre-line; font-size: 0.95rem; }
+.ann-btns { display: grid; gap: 8px; width: 100%; margin-top: 8px; }
+.ann-lead { display: grid; place-items: center; background: rgba(229, 9, 20, 0.18) !important; color: #ff6a72; }
+
+.adm-ann { display: grid; gap: 12px; }
+.adm-ann label { display: grid; gap: 6px; font-size: 0.85rem; opacity: 0.9; font-weight: 600; }
+.adm-ann input:not([type="checkbox"]), .adm-ann textarea, .adm-ann select { padding: 11px 13px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.18); background: #0e0e12; color: #fff; font: inherit; font-size: 0.95rem; }
+.adm-ann textarea { resize: vertical; }
+.adm-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.adm-check { display: flex !important; flex-direction: row; align-items: center; gap: 8px !important; }
+.adm-list { display: grid; gap: 8px; margin-top: 6px; }
+.adm-list > small { opacity: 0.65; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.72rem; }
+.adm-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
+.adm-item div { display: grid; gap: 2px; min-width: 0; }
+.adm-item span { font-size: 0.82rem; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-item small { opacity: 0.5; font-size: 0.72rem; }
+.adm-item button { flex: none; background: none; border: 1px solid rgba(255, 255, 255, 0.2); color: #ff8b8f; padding: 6px 12px; border-radius: 99px; font: 700 0.78rem Roboto, sans-serif; cursor: pointer; }
+
+.off-shell { min-height: 100vh; background: #0b0b10; color: #fff; }
+.off-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: calc(var(--sat, 24px) + 10px) 16px 12px; background: #1c1c24; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.off-bar.back { background: #123d27; }
+.off-ico { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.1); }
+.off-txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.off-txt small { opacity: 0.7; font-size: 0.8rem; }
+.off-btn { flex: none; min-height: 38px; padding: 0 16px; border: 0; border-radius: 99px; background: #fff; color: #111; font: 800 0.82rem Roboto, sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.off-btn:disabled { opacity: 0.7; }
+.off-shell .dlp { padding-top: 14px; }
+
+/* tela de escolha de servidor antes do vídeo */
+.sp { display: flex; }
+.sp-back { position: absolute; z-index: 3; top: calc(var(--sat, 0px) + 12px); left: calc(var(--sal, 0px) + 12px); width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.45); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.sp-body { position: relative; z-index: 2; margin: auto; width: min(560px, 92%); display: grid; gap: 8px; justify-items: center; text-align: center; padding: 14px 0; }
+.sp-ask { margin: 10px 0 2px; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+.sp-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; width: 100%; }
+.sp-opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(20, 20, 26, 0.78); color: #fff; text-align: left; cursor: pointer; font: inherit; }
+.sp-opt.auto { grid-column: 1 / -1; background: #e50914; border-color: #e50914; }
+.sp-opt:disabled { opacity: 0.45; cursor: default; }
+.sp-ico { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.14); }
+.sp-txt { display: grid; gap: 1px; min-width: 0; }
+.sp-txt b { font-size: 0.98rem; }
+.sp-txt small { opacity: 0.8; font-size: 0.76rem; }
+.sp-skip { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.8rem; opacity: 0.85; cursor: pointer; }
+
+/* selo de admin verificado */
+.vbadge { width: 1.05em; height: 1.05em; margin-left: 0.28em; vertical-align: -0.17em; flex: none; display: inline-block; }
+.ann-by { display: inline-flex; align-items: center; font-size: 1.1rem; font-weight: 900; }
+.ann-author-line { display: flex; align-items: center; font-weight: 800; color: #fff; margin-bottom: 2px; }

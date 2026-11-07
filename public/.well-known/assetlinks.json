@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.alxmovies.app",
+      "sha256_cert_fingerprints": [
+        "A9:84:E1:35:00:D9:3E:63:7D:78:15:5F:6A:93:4B:62:E5:EF:D3:85:34:51:9F:31:90:64:01:AC:CB:BB:C3:7A"
+      ]
+    }
+  }
+]
