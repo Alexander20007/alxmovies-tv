@@ -1,7 +1,8 @@
 name: Build Android APK
 
 # Gera o APK do ALXmovies e publica em "Releases" (dá pra baixar direto pelo celular).
-# Dispara: ao enviar o .zip do projeto / mexer no projeto, ou manualmente em Actions → Build Android APK → Run workflow.
+# O projeto fica em arquivos soltos na raiz do repositório (não é mais um .zip).
+# Dispara: ao mexer nos arquivos do projeto (push no main), ou manualmente em Actions → Build Android APK → Run workflow.
 on:
   push:
     branches: [main, master]
@@ -19,28 +20,12 @@ jobs:
       KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      APP_DIR: .
     steps:
       - uses: actions/checkout@v4
 
-      # Se houver um arquivo .zip na raiz do repositório (ex.: alxmovies-android.zip), o app é descompactado dele.
-      # Isso permite subir o projeto inteiro pelo celular, com um único arquivo.
-      - name: Localizar o projeto
-        run: |
-          ZIP=$(find . -maxdepth 1 -name "*.zip" | head -1)
-          if [ -n "$ZIP" ]; then
-            echo "Descompactando $ZIP"
-            rm -rf _app && mkdir _app && unzip -q "$ZIP" -d _app
-            DIR=_app
-            if [ ! -f "$DIR/package.json" ]; then
-              SUB=$(find _app -maxdepth 2 -name package.json -not -path "*/node_modules/*" | head -1)
-              [ -n "$SUB" ] && DIR=$(dirname "$SUB")
-            fi
-            echo "APP_DIR=$DIR" >> "$GITHUB_ENV"
-          else
-            echo "APP_DIR=." >> "$GITHUB_ENV"
-          fi
-          grep APP_DIR "$GITHUB_ENV"
-          test -f "$(grep APP_DIR "$GITHUB_ENV" | cut -d= -f2)/package.json" || { echo "✗ package.json não encontrado: envie o projeto (zip) para o repositório."; exit 1; }
+      - name: Conferir o projeto
+        run: test -f package.json || { echo "✗ package.json não encontrado na raiz do repositório."; exit 1; }
 
       - uses: actions/setup-node@v4
         with:
@@ -199,4 +184,3 @@ jobs:
           curl -fsS -X POST "$PUSH_SEND_URL" \
             -H "x-push-secret: $PUSH_SECRET" -H "Content-Type: application/json" \
             -d '{"table":"app_update","record":{"version":"${{ env.VERSION }}"}}'
-            

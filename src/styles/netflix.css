@@ -1,0 +1,281 @@
+/* ============================================================
+   ALXmovies — visual estilo Netflix (preto + vermelho, imagens
+   grandes, pôsteres sem moldura, botão de assistir branco).
+   Carregado POR ÚLTIMO (main.tsx), vale no site e no app.
+   O app Android tem a paleta/tamanhos próprios em native-m3.css.
+============================================================ */
+
+/* ---------- 1. Tokens (site) ---------- */
+:root {
+  --nf-red: #E50914;
+  --nf-red-dark: #B20710;
+  --bg: #141414;
+  --bg-elevated: #181818;
+  --bg-card: #1f1f1f;
+  --bg-glass: rgba(20, 20, 20, 0.92);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --text: #ffffff;
+  --text-dim: #b3b3b3;
+  --text-faint: #808080;
+  --accent-1: #E50914;
+  --accent-2: #E50914;
+  --accent-3: #B20710;
+  --gradient-brand: linear-gradient(0deg, #E50914, #E50914);
+  --gradient-brand-soft: linear-gradient(0deg, rgba(229, 9, 20, 0.22), rgba(229, 9, 20, 0.22));
+  --glow-accent: none;
+  --glow-accent-lg: none;
+  --success: #46d369;
+  --warning: #f5c518;
+  --danger: #ff6b6b;
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --shadow-card: none;
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.6);
+  --font-display: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+}
+
+/* ---------- 2. Base ---------- */
+html, body { -webkit-font-smoothing: antialiased; }
+body { background-image: none; background-color: var(--bg); }
+::selection { background: var(--nf-red); color: #fff; }
+.row-track, .ai-results-row { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.row-track::-webkit-scrollbar { display: none; }
+
+/* ---------- 3. Marca (nome em vermelho, maiúsculo) ---------- */
+.site-logo, .profiles-brand, .profiles-brand span, .auth-brand span, .brand-mark {
+  background: none !important;
+  -webkit-background-clip: border-box; background-clip: border-box;
+  -webkit-text-fill-color: var(--nf-red); color: var(--nf-red);
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em;
+}
+.brand-mark::before { display: none; }
+.auth-brand .logo-mark { display: none; }
+.auth-brand span { font-size: 2.1rem; }
+.profiles-brand { font-size: 1.7rem; margin-bottom: 14px; }
+
+/* ---------- 4. Topo e barra inferior do site ---------- */
+.site-header {
+  background: rgba(20, 20, 20, 0.94); backdrop-filter: none; border-bottom: 0;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.site-logo { font-size: 1.6rem; }
+.header-search-icon { background: none; border: 0; color: #fff; font-size: 1.15rem; }
+.header-search-icon:hover { background: rgba(255, 255, 255, 0.1); }
+.header-search-icon.active { background: none; box-shadow: none; color: var(--nf-red); }
+.header-profile-avatar { border-radius: 4px; }
+
+body { padding-bottom: 76px; }
+.bottom-nav {
+  left: 0; right: 0; bottom: 0; border-radius: 0; border: 0; border-top: 1px solid #222;
+  background: #000; backdrop-filter: none; box-shadow: none; padding: 8px 6px; padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+.bottom-nav a, .bottom-nav .bn-canais-btn { color: #8c8c8c; font-weight: 600; font-size: 0.64rem; }
+.bottom-nav a.active, .bottom-nav .bn-canais-btn:active { color: #fff; }
+.bottom-nav a.active .bn-icon { filter: none; }
+.bottom-nav .bn-canais-btn:hover { color: #fff; }
+
+/* ---------- 5. Destaque (hero) ---------- */
+.hero { height: 78vh; min-height: 480px; max-height: 760px; background-position: 62% 12%; border-radius: 0; }
+.hero::before { background: linear-gradient(180deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0) 26%); }
+.hero::after {
+  background:
+    linear-gradient(0deg, var(--bg) 1%, rgba(0, 0, 0, 0.72) 26%, rgba(0, 0, 0, 0) 62%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 55%);
+}
+.hero-content { padding: 0 20px 28px; max-width: 640px; }
+.hero-tag {
+  background: none; border: 0; box-shadow: none; padding: 0; margin-bottom: 10px;
+  color: #fff; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; gap: 8px;
+}
+.hero-tag::before { width: 4px; height: 16px; border-radius: 1px; background: var(--nf-red); box-shadow: none; animation: none; }
+.hero-content h2 {
+  font-size: clamp(2.1rem, 9.5vw, 3.6rem); font-weight: 900; letter-spacing: -0.035em; line-height: 0.98;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.8); margin-bottom: 12px;
+}
+.hero-meta { color: #d2d2d2; font-weight: 600; gap: 10px; }
+.hero-meta span + span::before { content: "•"; margin-right: 10px; color: #777; }
+.hero-meta-rating { color: #46d369; font-weight: 800; }
+.hero-content p { color: #e5e5e5; font-size: 0.95rem; line-height: 1.5; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); margin-bottom: 20px; }
+.hero-actions { gap: 10px; flex-wrap: nowrap; }
+.hero-btn {
+  flex: 1 1 0; justify-content: center; height: 46px; padding: 0 16px; border-radius: 4px; border: 0;
+  font-size: 1rem; font-weight: 700; backdrop-filter: none; white-space: nowrap;
+}
+.hero-btn svg { flex: none; }
+.hero-btn.primary { background: #fff; color: #000; box-shadow: none; }
+.hero-btn.primary:hover { background: rgba(255, 255, 255, 0.78); transform: none; box-shadow: none; }
+.hero-btn.secondary { background: rgba(109, 109, 110, 0.7); color: #fff; border: 0; }
+.hero-btn.secondary:hover { background: rgba(109, 109, 110, 0.45); }
+@media (max-width: 640px) {
+  .hero-content { text-align: center; margin: 0 auto; width: 100%; }
+  .hero-tag, .hero-meta { justify-content: center; }
+  .hero-content p { margin-left: auto; margin-right: auto; }
+}
+@media (min-width: 900px) {
+  .hero-content { padding: 0 48px 72px; }
+  .hero-btn { flex: 0 0 auto; padding: 0 30px; }
+}
+
+/* ---------- 6. Fileiras, pôsteres e Top 10 ---------- */
+.row { padding: 22px 0 0; }
+.row-title { font-size: 1.1rem; font-weight: 700; color: #e5e5e5; padding: 0 16px 10px; letter-spacing: -0.005em; }
+.row-title::before { display: none; }
+.row-track { gap: 8px; padding: 0 16px 8px; }
+.media-card { width: 124px; border-radius: 4px; border: 0; background: #1f1f1f; box-shadow: none; }
+.media-card img { border-radius: 4px; }
+@media (hover: hover) {
+  .media-card:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7); border-color: transparent; z-index: 3; }
+}
+@media (hover: none) { .media-card:hover { transform: none; box-shadow: none; } }
+@media (min-width: 900px) {
+  .row-title { padding: 0 48px 10px; font-size: 1.3rem; }
+  .row-track { padding: 0 48px 8px; gap: 6px; }
+  .media-card { width: 172px; }
+}
+
+/* nota: faixa discreta no pé do pôster (em vez de pílula amarela) */
+.media-card .card-rating {
+  top: auto; right: auto; left: 0; bottom: 0; width: 100%; box-sizing: border-box; text-align: left;
+  padding: 16px 8px 6px; border: 0; border-radius: 0; backdrop-filter: none;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
+  color: #fff; font-size: 0.68rem; font-weight: 700;
+}
+.media-card .progress-bar { height: 3px; background: rgba(255, 255, 255, 0.3); }
+.media-card .progress-bar-fill { background: var(--nf-red); box-shadow: none; }
+
+/* Top 10: número enorme vazado, atrás do pôster */
+.media-card.ranked { width: auto; flex: 0 0 auto; background: none; }
+.media-card.ranked .rank-number,
+.media-card.ranked:nth-child(-n+3) .rank-number {
+  font-family: var(--font-display); font-size: 6.4rem; font-weight: 900; line-height: 0.74; letter-spacing: -0.08em;
+  color: #000; background: none; -webkit-background-clip: border-box; background-clip: border-box;
+  -webkit-text-stroke: 3px #6e6e6e; text-shadow: none;
+  width: auto; min-width: 46px; text-align: right; margin-right: -20px; z-index: 0;
+}
+.media-card.ranked .rank-poster { width: 112px; border-radius: 4px; border: 0; z-index: 1; background: #1f1f1f; }
+@media (hover: hover) {
+  .media-card.ranked:hover .rank-poster { transform: scale(1.06); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7); }
+}
+@media (min-width: 900px) { .media-card.ranked .rank-poster { width: 150px; } }
+
+/* ---------- 7. Busca, filtros e grade ---------- */
+.search-results-grid { gap: 8px; }
+.filters-bar select { background: #333; border: 0; border-radius: 4px; color: #fff; padding: 10px 14px; }
+.mylist-tab { border: 1px solid #666; color: #fff; background: transparent; border-radius: 999px; }
+.mylist-tab.active { background: #fff; color: #000; border-color: #fff; }
+
+/* ---------- 8. Detalhes do filme/série ---------- */
+.dx-hero::before {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 22%, rgba(0, 0, 0, 0.6) 62%, var(--bg) 100%);
+}
+.dx-title { font-weight: 900; letter-spacing: -0.035em; }
+.dx-badge { border-radius: 2px; backdrop-filter: none; background: rgba(255, 255, 255, 0.14); border: 0; letter-spacing: 0.12em; }
+.dx-badge.new { background: var(--nf-red); box-shadow: none; }
+.dx-meta { color: #bcbcbc; }
+.dx-meta .dx-rate { color: #46d369; background: none; border: 0; padding: 0; font-weight: 800; }
+.dx-chip { border-radius: 4px; background: rgba(255, 255, 255, 0.1); border: 0; backdrop-filter: none; }
+
+.dx-play, .dx-ghost { height: 48px; border-radius: 4px; font-weight: 700; backdrop-filter: none; border: 0; }
+.dx-play { background: #fff; color: #000; box-shadow: none; }
+.dx-play::after { display: none; }
+.dx-play:hover { transform: none; box-shadow: none; background: rgba(255, 255, 255, 0.78); }
+.dx-ghost { background: rgba(109, 109, 110, 0.7); color: #fff; }
+.dx-ghost:hover { background: rgba(109, 109, 110, 0.45); }
+
+/* ícones de ação sem círculo: ícone grande + legenda (Minha lista / Avaliar / Compartilhar) */
+.dx-ic .ic { background: none; border: 0; backdrop-filter: none; width: 44px; height: 36px; border-radius: 0; font-size: 1.45rem; }
+.dx-ic .lb { font-size: 0.68rem; font-weight: 600; color: #b3b3b3; }
+.dx-ic:hover .ic { background: none; transform: scale(1.12); }
+.dx-ic.active .ic { background: none; box-shadow: none; color: var(--nf-red); }
+.dx-rate-box .rating-group { background: none; border: 0; backdrop-filter: none; height: 36px; }
+.dx-rate-box .rating-group button.active { background: none; box-shadow: none; opacity: 1; transform: scale(1.25); }
+
+/* abas com barra vermelha em cima (Episódios / Semelhantes) */
+.dx-tabs { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.dx-tab { font-weight: 700; color: #b3b3b3; padding: 16px 14px 12px; }
+.dx-tab.active { color: #fff; }
+.dx-tab.active::after { top: 0; bottom: auto; left: 12px; right: 12px; height: 3px; border-radius: 0; background: var(--nf-red); box-shadow: none; }
+.dx-synopsis p { color: #d2d2d2; font-size: 0.95rem; line-height: 1.55; }
+.dx-more { color: #fff; text-decoration: underline; }
+
+/* ---------- 9. "Quem está assistindo?" ---------- */
+.profiles-screen { background: var(--bg); }
+.profiles-screen h1 { font-family: var(--font-display); font-size: clamp(1.8rem, 6vw, 3.2rem); font-weight: 500; letter-spacing: -0.01em; }
+.profiles-subtitle { color: #808080; }
+.profile-avatar { border-radius: 4px; border: 3px solid transparent; background: #333; }
+.profile-item:hover .profile-avatar, .profile-item:focus-visible .profile-avatar {
+  background: #333; border-color: #fff; transform: scale(1.04); box-shadow: none;
+}
+.profile-name { color: #808080; font-weight: 500; }
+.profile-item:hover .profile-name { color: #fff; }
+.kids-badge { border-radius: 2px; background: var(--nf-red); color: #fff; }
+.manage-link {
+  border: 1px solid #808080; color: #808080; background: none; border-radius: 2px;
+  text-transform: uppercase; letter-spacing: 0.12em; padding: 10px 24px; text-decoration: none;
+}
+.manage-link:hover { color: #fff; border-color: #fff; }
+
+/* ---------- 10. Entrar / criar conta ---------- */
+.auth-screen { background: #000; }
+.auth-bg-wash { background: linear-gradient(180deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.92) 100%); }
+.auth-bg-col img { border-radius: 4px; filter: none; opacity: 0.6; }
+.auth-box { background: rgba(0, 0, 0, 0.78); border: 0; border-radius: 4px; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; padding: 44px 36px; }
+.auth-box h1 { font-size: 1.9rem; font-weight: 700; }
+.auth-subtitle { color: #b3b3b3; }
+.auth-box input { background: #333; border: 1px solid transparent; border-radius: 4px; }
+.auth-box input:focus { border-color: #fff; background: #3d3d3d; box-shadow: none; }
+.auth-submit:not(.auth-guest-btn) { background: var(--nf-red); background-image: none; border-radius: 4px; font-weight: 700; box-shadow: none; }
+.auth-submit:not(.auth-guest-btn):hover { background: #f6121d; }
+.auth-guest-btn { border-radius: 4px; background: #333; background-image: none; color: #fff; box-shadow: none; }
+@media (max-width: 480px) { .auth-box { padding: 32px 22px; } }
+
+/* ---------- 11. Assistente de IA ---------- */
+.ai-assistant-toggle { background: var(--nf-red); background-image: none; border-radius: 50%; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6); }
+.ai-assistant-toggle:hover { box-shadow: 0 8px 26px rgba(229, 9, 20, 0.45); }
+.ai-assistant-panel {
+  background: #141414; backdrop-filter: none; border: 1px solid #2b2b2b; border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+.ai-assistant-header {
+  background: #0b0b0b; border-bottom: 1px solid #262626; padding: 16px 18px;
+  font-size: 1rem; font-weight: 700; letter-spacing: -0.005em;
+}
+.ai-assistant-header #ai-assistant-close { background: #2a2a2a; width: 34px; height: 34px; font-size: 1rem; }
+.ai-assistant-messages { min-height: 0; padding: 16px; gap: 12px; overscroll-behavior: contain; }
+.ai-msg { font-size: 0.93rem; line-height: 1.5; border-radius: 14px; padding: 12px 15px; }
+.ai-msg-bot { background: #262626; border: 0; border-bottom-left-radius: 4px; color: #f2f2f2; }
+.ai-msg-bot.error { background: #3a1214; color: #ffb3b3; }
+.ai-msg-user { background: var(--nf-red); border-bottom-right-radius: 4px; font-weight: 500; }
+.ai-assistant-form { background: #0b0b0b; border-top: 1px solid #262626; padding: 10px 12px; gap: 10px; align-items: center; }
+.ai-assistant-form input, html.native .ai-assistant-form input {
+  background: #2b2b2b; border: 1px solid transparent; border-radius: 24px; color: #fff;
+  font-size: 16px; line-height: 24px; padding: 0 18px; height: 46px; min-height: 46px; box-sizing: border-box;
+}
+.ai-assistant-form input:focus, html.native .ai-assistant-form input:focus { border-color: #fff; background: #333; box-shadow: none; }
+.ai-assistant-form button { width: 46px; height: 46px; background: var(--nf-red); background-image: none; box-shadow: none; font-size: 1.1rem; }
+.ai-assistant-form button:disabled { opacity: 0.45; }
+
+/* sugestões rápidas (tela inicial do assistente) */
+.ai-suggestions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; margin-top: 2px; }
+.ai-chip {
+  border: 1px solid #4a4a4a; background: transparent; color: #fff; border-radius: 999px;
+  padding: 9px 14px; font: 600 0.82rem/1.2 inherit; font-family: inherit; cursor: pointer; text-align: left;
+}
+.ai-chip:hover { border-color: #fff; background: rgba(255, 255, 255, 0.08); }
+.ai-chip:disabled { opacity: 0.5; }
+
+/* cartões de resultado dentro do chat */
+.ai-movie-card { background: #1f1f1f; border: 0; border-radius: 8px; }
+.ai-mc-title { font-size: 0.95rem; }
+.ai-mc-btn { border-radius: 4px; font-size: 0.8rem; padding: 10px; }
+.ai-mc-watch { background: #fff; color: #000; box-shadow: none; }
+.ai-mc-share { background: #333; color: #fff; border: 0; }
+.ai-result-card img { border-radius: 4px; }
+
+/* ---------- 12. Detalhes finos ---------- */
+.spinner { border-top-color: var(--nf-red); }
+.theme-card, .glass-panel, .account-card { backdrop-filter: none; }
