@@ -1,0 +1,147 @@
+package __PKG__;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Verificador de canais: faz o que o player faria, sem abrir o vídeo. Baixa a playlist HLS (com User-Agent e Referer),
+ * confere se é uma playlist de verdade, abre a variante, e baixa um trecho real do vídeo. Canais que não são HLS
+ * (TS/MP4 direto) precisam entregar dados de vídeo (não uma página de erro). Só dá "online" se o trecho carregou.
+ */
+final class AlxProbe {
+  static final String UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  static final String DEFAULT_REFERER = "https://alx-player.netlify.app/";
+  private static final int TIMEOUT_MS = 6000;
+
+  static final class Result { boolean online; String reason = ""; long ms; }
+  private static final class Resp { int code; String contentType = ""; byte[] body = new byte[0]; String finalUrl; }
+
+  private AlxProbe() {}
+
+  /** GET com redirecionamentos manuais (inclui http<->https), lendo no máximo maxBytes. */
+  private static Resp get(String url, String referer, int maxBytes, boolean range) throws Exception {
+    String cur = url;
+    for (int hop = 0; hop < 6; hop++) {
+      HttpURLConnection c = (HttpURLConnection) new URL(cur).openConnection();
+      try {
+        c.setInstanceFollowRedirects(false);
+        c.setConnectTimeout(TIMEOUT_MS);
+        c.setReadTimeout(TIMEOUT_MS);
+        c.setRequestProperty("User-Agent", UA);
+        c.setRequestProperty("Accept", "*/*");
+        if (referer != null && !referer.isEmpty()) c.setRequestProperty("Referer", referer);
+        if (range) c.setRequestProperty("Range", "bytes=0-" + (maxBytes - 1));
+        int code = c.getResponseCode();
+        if (code >= 300 && code < 400) {
+          String loc = c.getHeaderField("Location");
+          if (loc == null || loc.isEmpty()) throw new Exception("Redirecionamento sem destino");
+          cur = new URL(new URL(cur), loc).toString();
+          continue;
+        }
+        Resp r = new Resp();
+        r.code = code;
+        r.finalUrl = cur;
+        String ct = c.getContentType();
+        r.contentType = ct == null ? "" : ct.toLowerCase(Locale.ROOT);
+        if (code == 200 || code == 206) {
+          InputStream in = c.getInputStream();
+          ByteArrayOutputStream bo = new ByteArrayOutputStream();
+          byte[] buf = new byte[4096];
+          int n;
+          while (bo.size() < maxBytes && (n = in.read(buf, 0, Math.min(buf.length, maxBytes - bo.size()))) > 0) bo.write(buf, 0, n);
+          r.body = bo.toByteArray();
+        }
+        return r;
+      } finally {
+        c.disconnect();
+      }
+    }
+    throw new Exception("Redirecionamentos demais");
+  }
+
+  private static boolean looksHtml(Resp r) {
+    if (r.contentType.contains("text/html")) return true;
+    int i = 0;
+    while (i < r.body.length && (r.body[i] == ' ' || r.body[i] == '\n' || r.body[i] == '\r' || r.body[i] == '\t')) i++;
+    return i < r.body.length && r.body[i] == '<';
+  }
+
+  private static String text(Resp r) {
+    String t = new String(r.body, StandardCharsets.UTF_8).trim();
+    return t.startsWith("\uFEFF") ? t.substring(1).trim() : t;
+  }
+
+  private static String resolve(String base, String ref) throws Exception { return new URL(new URL(base), ref.trim()).toString(); }
+
+  /** Linhas de endereço (não comentários) de uma playlist. */
+  private static List<String> uris(String playlist) {
+    List<String> out = new ArrayList<>();
+    for (String line : playlist.split("\n")) {
+      String l = line.trim();
+      if (!l.isEmpty() && !l.startsWith("#")) out.add(l);
+    }
+    return out;
+  }
+
+  private static Result fail(Result r, long t0, String why) { r.online = false; r.reason = why; r.ms = System.currentTimeMillis() - t0; return r; }
+  private static Result ok(Result r, long t0) { r.online = true; r.reason = "No ar"; r.ms = System.currentTimeMillis() - t0; return r; }
+
+  static Result check(String url, String referer) {
+    long t0 = System.currentTimeMillis();
+    Result res = new Result();
+    try {
+      String ref = (referer == null || referer.isEmpty()) ? DEFAULT_REFERER : referer;
+      Resp a = get(url, ref, 65536, false);
+      if (a.code != 200 && a.code != 206) return fail(res, t0, "Servidor respondeu HTTP " + a.code);
+      String body = text(a);
+
+      if (body.startsWith("#EXTM3U")) {
+        String plUrl = a.finalUrl;
+        String pl = body;
+        if (pl.contains("#EXT-X-STREAM-INF")) { // playlist mestre: abre a primeira variante
+          String lastInf = null;
+          String variant = null;
+          for (String line : pl.split("\n")) {
+            String l = line.trim();
+            if (l.startsWith("#EXT-X-STREAM-INF")) lastInf = l;
+            else if (lastInf != null && !l.isEmpty() && !l.startsWith("#")) { variant = l; break; }
+          }
+          if (variant == null) return fail(res, t0, "Playlist sem variantes");
+          Resp b = get(resolve(plUrl, variant), ref, 65536, false);
+          if (b.code != 200 && b.code != 206) return fail(res, t0, "Variante respondeu HTTP " + b.code);
+          pl = text(b);
+          plUrl = b.finalUrl;
+          if (!pl.startsWith("#EXTM3U")) return fail(res, t0, "Playlist da variante inválida");
+        }
+        List<String> segs = uris(pl);
+        if (segs.isEmpty()) return fail(res, t0, "Playlist sem trechos de vídeo");
+        // trecho mais recente primeiro; se não existir mais, tenta o anterior
+        int tries = 0;
+        for (int i = segs.size() - 1; i >= 0 && tries < 2; i--, tries++) {
+          Resp s = get(resolve(plUrl, segs.get(i)), ref, 4096, true);
+          if ((s.code == 200 || s.code == 206) && s.body.length >= 188 && !looksHtml(s)) return ok(res, t0);
+        }
+        return fail(res, t0, "Trecho de vídeo não carrega");
+      }
+
+      // não é playlist: vídeo direto (TS/MP4...) ou página de erro
+      if (looksHtml(a)) return fail(res, t0, "Resposta é uma página, não vídeo");
+      if (a.contentType.contains("mpegurl")) return fail(res, t0, "Playlist inválida");
+      if (a.body.length < 1024) return fail(res, t0, "Sem dados de vídeo");
+      return ok(res, t0);
+    } catch (java.net.SocketTimeoutException e) {
+      return fail(res, t0, "Tempo esgotado");
+    } catch (java.net.UnknownHostException e) {
+      return fail(res, t0, "Servidor não encontrado");
+    } catch (Exception e) {
+      String m = e.getMessage();
+      return fail(res, t0, m == null || m.isEmpty() ? "Falha de conexão" : (m.length() > 80 ? m.substring(0, 80) : m));
+    }
+  }
+}

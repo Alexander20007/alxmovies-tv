@@ -1,0 +1,1322 @@
+package __PKG__;
+
+import android.animation.ValueAnimator;
+import android.app.PictureInPictureParams;
+import android.content.Context;
+import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.CornerPathEffect;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.media.AudioManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Rational;
+import android.util.TypedValue;
+import android.view.GestureDetector;
+import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.media3.common.C;
+import androidx.media3.common.Format;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.common.TrackSelectionOverride;
+import androidx.media3.common.Tracks;
+import androidx.media3.common.VideoSize;
+import androidx.media3.common.text.CueGroup;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.hls.HlsMediaSource;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.ui.AspectRatioFrameLayout;
+import androidx.media3.ui.SubtitleView;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Player de vídeo 100% nativo (Media3/ExoPlayer) — visual novo: tela de carregamento com o banner, controles com ícones
+ * desenhados, barra de progresso própria, chips de opções, painel lateral animado, gestos (brilho, volume, toque duplo)
+ * e picture-in-picture.
+ */
+public class AlxPlayerActivity extends ComponentActivity {
+  private static final int RED = Color.parseColor("#E50914");
+  private static final int PANEL = Color.parseColor("#F0131318");
+  private static final int MUTED = 0xFFB4B4C0;
+
+  static volatile AlxPlayerActivity current;
+  private TextView topSub, liveProg;
+  private ExoPlayer player;
+  private AspectRatioFrameLayout aspect;
+  private SurfaceView surface;
+  private SubtitleView subtitles;
+  private FrameLayout root, controls, loadingLayer;
+  private LinearLayout topBar, bottomBar, centerRow, hintPill;
+  private IconView playIcon, pipIcon;
+  private TextView timeNow, timeTotal, hintLabel, hintValue, flashL, flashR, speedTxt, fitTxt;
+  private LinearLayout qualityPill, subsPill;
+  private View nextPill;
+  private ProgressBar hintBar;
+  private BufferRing ring;
+  private TextView bufferLabel;
+  private final Runnable showBuffer = new Runnable() {
+    @Override public void run() {
+      if (ring == null) return;
+      ring.setVisibility(View.VISIBLE); ring.start();
+      bufferLabel.setText("Carregando…"); bufferLabel.setVisibility(View.VISIBLE);
+      ui.postDelayed(slowBuffer, 6000);
+    }
+  };
+  private final Runnable slowBuffer = new Runnable() {
+    @Override public void run() { if (ring != null && ring.getVisibility() == View.VISIBLE) bufferLabel.setText("Internet fraca… aguardando"); }
+  };
+  private SeekView seek;
+  private FrameLayout menuLayer;
+  private View menuScrim;
+  private ScrollView menuScroll;
+  private LinearLayout menuBox;
+  private ImageView backdrop;
+  private final Handler ui = new Handler(Looper.getMainLooper());
+
+  private String title = "", subtitle = "", poster = "", currentServer = "", fallbackLabel = "Reserva", source = "main";
+  private String[] serverLabels = new String[0];
+  private boolean[] serverOk = new boolean[0];
+  private boolean live = false, hasPrev = false;
+  private String referer = "", logoUrl = "";
+  private ImageView logoView;
+  private LinearLayout prevPillView;
+  private boolean hasNext = false, controlsVisible = true, finishedOnce = false, errorRetried = false, inPip = false, firstFrame = false, zoomed = false;
+  private long startMs = 0;
+  private double startPercent = -1;
+  private boolean startApplied = false;
+  private float rate = 1f;
+  private float brightness = -1f;
+  private long lastEmit = 0;
+  private boolean menuIsOpen = false;
+
+  private final Runnable hideRunner = () -> { if (player != null && player.isPlaying() && !menuIsOpen && !seek.isDragging()) setControls(false); };
+  private final Runnable hideHint = () -> hintPill.setVisibility(View.GONE);
+  private final Runnable hideFlashL = () -> flashL.setVisibility(View.GONE);
+  private final Runnable hideFlashR = () -> flashR.setVisibility(View.GONE);
+  private final Runnable ticker = new Runnable() {
+    @Override public void run() {
+      updateTime();
+      long now = System.currentTimeMillis();
+      if (now - lastEmit > 15000 && player != null && player.isPlaying()) { lastEmit = now; emitProgress(); }
+      ui.postDelayed(this, 500);
+    }
+  };
+
+  private int dp(float v) { return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics())); }
+  private static String nz(String s) { return s == null ? "" : s; }
+
+  // =================================================================== ciclo de vida
+  @Override
+  protected void onCreate(Bundle b) {
+    super.onCreate(b);
+    Intent in = getIntent();
+    String url = in.getStringExtra("url");
+    title = nz(in.getStringExtra("title"));
+    subtitle = nz(in.getStringExtra("subtitle"));
+    poster = nz(in.getStringExtra("poster"));
+    startMs = in.getLongExtra("startMs", 0);
+    startPercent = in.getDoubleExtra("startPercent", -1);
+    hasNext = in.getBooleanExtra("hasNext", false);
+    currentServer = nz(in.getStringExtra("server"));
+    source = nz(in.getStringExtra("source"));
+    String fl = in.getStringExtra("fallbackLabel");
+    if (fl != null && !fl.isEmpty()) fallbackLabel = fl;
+    serverLabels = in.getStringArrayExtra("serverLabels") == null ? new String[0] : in.getStringArrayExtra("serverLabels");
+    serverOk = in.getBooleanArrayExtra("serverOk") == null ? new boolean[0] : in.getBooleanArrayExtra("serverOk");
+    rate = in.getFloatExtra("rate", 1f);
+    current = this;
+    live = in.getBooleanExtra("live", false);
+    hasPrev = in.getBooleanExtra("hasPrev", false);
+    referer = nz(in.getStringExtra("referer"));
+    logoUrl = nz(in.getStringExtra("logo"));
+    if (live && referer.isEmpty()) referer = "https://alx-player.netlify.app/"; // alguns canais só abrem com este Referer
+
+    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+    if (Build.VERSION.SDK_INT >= 28) getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+    hideSystemBars();
+    buildUi();
+
+    getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+      @Override public void handleOnBackPressed() {
+        if (menuIsOpen) closeMenu(); else finishWith("closed", null);
+      }
+    });
+
+    if (url == null || url.isEmpty()) { finishWith("error", null); return; }
+    loadPoster();
+    startPlayer(url);
+    ui.post(ticker);
+  }
+
+  private void hideSystemBars() {
+    WindowInsetsControllerCompat c = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+    c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+    c.hide(WindowInsetsCompat.Type.systemBars());
+  }
+
+  @Override public void onWindowFocusChanged(boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus && !inPip) hideSystemBars();
+  }
+
+  // =================================================================== player
+  private void startPlayer(String url) {
+    DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
+      .setAllowCrossProtocolRedirects(true)
+      .setConnectTimeoutMs(15000)
+      .setReadTimeoutMs(25000)
+      .setUserAgent(live
+        ? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        : "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36");
+    if (!referer.isEmpty()) {
+      java.util.Map<String, String> hdr = new java.util.HashMap<>();
+      hdr.put("Referer", referer);
+      if (!live) { try { hdr.put("Origin", new URL(referer).getProtocol() + "://" + new URL(referer).getHost()); } catch (Exception ignored) {} }
+      http.setDefaultRequestProperties(hdr);
+    }
+    player = new ExoPlayer.Builder(this).build();
+    player.setVideoSurfaceView(surface);
+    player.setPlaybackSpeed(rate);
+    if (live) {
+      // canal: o ExoPlayer escolhe o formato pela URL; links sem extensão são tratados como HLS
+      String last = Uri.parse(url).getLastPathSegment();
+      boolean noExt = last == null || !last.contains(".");
+      MediaItem.Builder mib = new MediaItem.Builder().setUri(url);
+      if (noExt || url.toLowerCase(Locale.ROOT).contains(".m3u8")) mib.setMimeType(MimeTypes.APPLICATION_M3U8);
+      player.setMediaSource(new DefaultMediaSourceFactory(http).createMediaSource(mib.build()));
+    } else if (url.startsWith("file:") || url.startsWith("content:")) {
+      // download offline: arquivo local (playlist .m3u8 salva no celular ou vídeo único)
+      androidx.media3.datasource.DefaultDataSource.Factory local = new androidx.media3.datasource.DefaultDataSource.Factory(this);
+      MediaItem li = MediaItem.fromUri(url);
+      if (url.toLowerCase(Locale.ROOT).contains(".m3u8")) player.setMediaSource(new HlsMediaSource.Factory(local).createMediaSource(li));
+      else player.setMediaSource(new DefaultMediaSourceFactory(local).createMediaSource(li));
+    } else {
+      player.setMediaSource(new HlsMediaSource.Factory(http).createMediaSource(MediaItem.fromUri(url)));
+    }
+    player.addListener(new Player.Listener() {
+      @Override public void onPlaybackStateChanged(int state) {
+        setBuffering(state == Player.STATE_BUFFERING && firstFrame);
+        updatePlayIcon();
+        if (state == Player.STATE_READY) {
+          applyStart();
+          long d = player.getDuration();
+          if (!live && d > 0 && d != C.TIME_UNSET) timeTotal.setText(fmt(d));
+        }
+        if (state == Player.STATE_ENDED) finishWith(live ? "error" : "ended", null);
+      }
+      @Override public void onRenderedFirstFrame() { showVideo(); }
+      @Override public void onIsPlayingChanged(boolean playing) {
+        updatePlayIcon();
+        if (playing) { showVideo(); scheduleHide(); } else { if (firstFrame) setControls(true); emitProgress(); }
+      }
+      @Override public void onVideoSizeChanged(VideoSize v) {
+        if (v.height > 0) aspect.setAspectRatio(v.width * v.pixelWidthHeightRatio / v.height);
+      }
+      @Override public void onCues(CueGroup g) { subtitles.setCues(g.cues); }
+      @Override public void onTracksChanged(Tracks t) { refreshTrackButtons(t); }
+      @Override public void onPlayerError(PlaybackException e) {
+        if (!errorRetried) { errorRetried = true; player.prepare(); player.play(); return; } // uma segunda chance antes de desistir
+        finishWith("error", null);
+      }
+    });
+    player.prepare();
+    player.setPlayWhenReady(true);
+  }
+
+  /** Primeiro quadro na tela: some a tela de carregamento e aparecem os controles. */
+  private void showVideo() {
+    if (firstFrame) return;
+    firstFrame = true;
+    setBuffering(false);
+    loadingLayer.animate().alpha(0f).setDuration(320).withEndAction(() -> loadingLayer.setVisibility(View.GONE)).start();
+    setControls(true);
+  }
+
+  private void applyStart() {
+    if (startApplied) return;
+    startApplied = true;
+    long d = player.getDuration();
+    if (startMs > 0) player.seekTo(startMs);
+    else if (startPercent > 0 && d > 0 && d != C.TIME_UNSET) player.seekTo((long) (d * startPercent / 100.0));
+  }
+
+  private void refreshTrackButtons(Tracks t) {
+    int videoOptions = 0, textOptions = 0;
+    for (Tracks.Group g : t.getGroups()) {
+      if (g.getType() == C.TRACK_TYPE_VIDEO) videoOptions += g.length;
+      if (g.getType() == C.TRACK_TYPE_TEXT) textOptions += g.length;
+    }
+    qualityPill.setVisibility(videoOptions > 1 ? View.VISIBLE : View.GONE);
+    subsPill.setVisibility(textOptions > 0 ? View.VISIBLE : View.GONE);
+  }
+
+  // =================================================================== resultado
+  private void emitProgress() {
+    if (player == null || live) return;
+    AlxPlayerPlugin p = AlxPlayerPlugin.live;
+    if (p != null) p.emitProgress(player.getCurrentPosition(), Math.max(0, player.getDuration()));
+  }
+
+  private void finishWith(String reason, String server) {
+    if (finishedOnce) return;
+    finishedOnce = true;
+    long pos = 0, dur = 0;
+    if (player != null) { pos = player.getCurrentPosition(); dur = Math.max(0, player.getDuration()); }
+    Intent r = new Intent();
+    r.putExtra("reason", reason);
+    r.putExtra("positionMs", pos);
+    r.putExtra("durationMs", dur);
+    r.putExtra("rate", rate);
+    r.putExtra("played", firstFrame);
+    if (server != null) r.putExtra("server", server);
+    setResult(RESULT_OK, r);
+    releasePlayer();
+    finish();
+    overridePendingTransition(0, 0);
+  }
+
+  private void releasePlayer() {
+    ui.removeCallbacksAndMessages(null);
+    if (player != null) { try { player.release(); } catch (Exception ignored) {} player = null; }
+  }
+
+  /** Troca o nome do programa (chamado pelo app quando a programação chega). */
+  void setProgramText(final String t) {
+    runOnUiThread(() -> {
+      if (liveProg != null) liveProg.setText(t);
+      if (topSub != null) topSub.setText(t);
+    });
+  }
+
+  @Override protected void onDestroy() {
+    if (current == this) current = null;
+    if (!finishedOnce && player != null) { // fechado pelo sistema: avisa onde parou
+      finishedOnce = true;
+      Intent r = new Intent();
+      r.putExtra("reason", "closed");
+      r.putExtra("positionMs", player.getCurrentPosition());
+      r.putExtra("durationMs", Math.max(0, player.getDuration()));
+      r.putExtra("rate", rate);
+      setResult(RESULT_OK, r);
+    }
+    releasePlayer();
+    super.onDestroy();
+  }
+
+  @Override protected void onStop() {
+    super.onStop();
+    if (player != null && !inPip && !isFinishing()) { player.pause(); emitProgress(); }
+  }
+
+  @Override protected void onUserLeaveHint() {
+    super.onUserLeaveHint();
+    if (player != null && player.isPlaying()) enterPip();
+  }
+
+  private void enterPip() {
+    if (Build.VERSION.SDK_INT < 26) return;
+    try {
+      enterPictureInPictureMode(new PictureInPictureParams.Builder().setAspectRatio(new Rational(16, 9)).build());
+    } catch (Exception ignored) {}
+  }
+
+  @Override public void onPictureInPictureModeChanged(boolean isInPip, Configuration cfg) {
+    super.onPictureInPictureModeChanged(isInPip, cfg);
+    inPip = isInPip;
+    controls.setVisibility(isInPip ? View.GONE : (controlsVisible ? View.VISIBLE : View.GONE));
+    if (isInPip) closeMenu(); else hideSystemBars();
+  }
+
+  // =================================================================== montagem da interface
+  private GradientDrawable rounded(int color, float radiusDp) {
+    GradientDrawable g = new GradientDrawable();
+    g.setColor(color);
+    g.setCornerRadius(dp(radiusDp));
+    return g;
+  }
+  private GradientDrawable circle(int color) { GradientDrawable g = new GradientDrawable(); g.setShape(GradientDrawable.OVAL); g.setColor(color); return g; }
+  private GradientDrawable scrim(boolean top) {
+    return new GradientDrawable(top ? GradientDrawable.Orientation.TOP_BOTTOM : GradientDrawable.Orientation.BOTTOM_TOP, new int[] { 0xE6000000, 0x99000000, 0x00000000 });
+  }
+  private TextView text(String s, int sp, int color, boolean bold) {
+    TextView t = new TextView(this);
+    t.setText(s);
+    t.setTextColor(color);
+    t.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
+    if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
+    return t;
+  }
+
+  /** Efeito de "apertar" ao tocar (o clique continua funcionando). */
+  private void pressable(View v) {
+    v.setOnTouchListener((x, e) -> {
+      int a = e.getActionMasked();
+      if (a == MotionEvent.ACTION_DOWN) x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(90).start();
+      else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) x.animate().scaleX(1f).scaleY(1f).setDuration(140).start();
+      return false;
+    });
+  }
+
+  /** Botão redondo com ícone (voltar, PiP, -10, +10, play). */
+  private FrameLayout roundBtn(IconView icon, int sizeDp, int iconDp, int bg, View.OnClickListener l) {
+    FrameLayout f = new FrameLayout(this);
+    f.setBackground(circle(bg));
+    f.addView(icon, new FrameLayout.LayoutParams(dp(iconDp), dp(iconDp), Gravity.CENTER));
+    f.setOnClickListener(l);
+    f.setLayoutParams(new LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp)));
+    pressable(f);
+    return f;
+  }
+
+  /** Pílula com ícone + texto (velocidade, legendas, qualidade, servidor…). */
+  private LinearLayout pill(int iconType, String label, boolean accent, View.OnClickListener l) {
+    LinearLayout p = new LinearLayout(this);
+    p.setOrientation(LinearLayout.HORIZONTAL);
+    p.setGravity(Gravity.CENTER_VERTICAL);
+    p.setPadding(dp(12), dp(8), dp(14), dp(8));
+    GradientDrawable bg = rounded(accent ? 0xFFFFFFFF : 0x33FFFFFF, 22);
+    if (!accent) bg.setStroke(dp(1), 0x33FFFFFF);
+    p.setBackground(bg);
+    int fg = accent ? Color.BLACK : Color.WHITE;
+    IconView ic = new IconView(this, iconType, fg);
+    p.addView(ic, new LinearLayout.LayoutParams(dp(20), dp(20)));
+    TextView t = text(label, 13, fg, true);
+    t.setPadding(dp(7), 0, 0, 0);
+    t.setSingleLine(true);
+    p.addView(t);
+    p.setOnClickListener(l);
+    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    lp.setMargins(0, 0, dp(8), 0);
+    p.setLayoutParams(lp);
+    pressable(p);
+    return p;
+  }
+  private TextView pillText(LinearLayout p) { return (TextView) p.getChildAt(1); }
+
+  private void buildUi() {
+    root = new FrameLayout(this);
+    root.setBackgroundColor(Color.BLACK);
+    setContentView(root);
+
+    // --- vídeo
+    aspect = new AspectRatioFrameLayout(this);
+    aspect.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
+    surface = new SurfaceView(this);
+    aspect.addView(surface, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    root.addView(aspect, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER));
+    subtitles = new SubtitleView(this);
+    root.addView(subtitles, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+    // --- gestos: toque mostra/esconde · toque duplo avança/volta 10 s (ou play/pause no meio) · arrastar vertical = brilho (esq.) / volume (dir.)
+    final GestureDetector gd = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+      @Override public boolean onDown(MotionEvent e) { return true; }
+      @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+        if (!firstFrame) return true;
+        if (menuIsOpen) { closeMenu(); return true; }
+        setControls(!controlsVisible); return true;
+      }
+      @Override public boolean onDoubleTap(MotionEvent e) {
+        if (!firstFrame) return true;
+        float x = e.getX() / root.getWidth();
+        if (live) togglePlay(); else if (x < 0.35f) seekBy(-10000); else if (x > 0.65f) seekBy(10000); else { togglePlay(); }
+        return true;
+      }
+      @Override public boolean onScroll(MotionEvent a, MotionEvent c, float dx, float dy) {
+        if (!firstFrame || a == null || Math.abs(dy) < Math.abs(dx)) return false;
+        if (a.getX() < root.getWidth() / 2f) adjustBrightness(dy / root.getHeight()); else adjustVolume(dy / root.getHeight());
+        return true;
+      }
+    });
+    View touch = new View(this);
+    touch.setOnTouchListener((v, e) -> gd.onTouchEvent(e));
+    root.addView(touch, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+    // --- avisos de toque duplo (esquerda / direita)
+    flashL = flashLabel("−10 s"); flashR = flashLabel("+10 s");
+    FrameLayout.LayoutParams fl = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.START);
+    fl.setMargins(dp(72), 0, 0, 0);
+    FrameLayout.LayoutParams fr = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.END);
+    fr.setMargins(0, 0, dp(72), 0);
+    root.addView(flashL, fl); root.addView(flashR, fr);
+
+    // --- indicador de brilho / volume
+    hintPill = new LinearLayout(this);
+    hintPill.setOrientation(LinearLayout.HORIZONTAL);
+    hintPill.setGravity(Gravity.CENTER_VERTICAL);
+    hintPill.setPadding(dp(16), dp(10), dp(16), dp(10));
+    hintPill.setBackground(rounded(0xCC000000, 24));
+    hintPill.setVisibility(View.GONE);
+    hintLabel = text("", 13, MUTED, true);
+    hintBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+    hintBar.setMax(100);
+    hintBar.setProgressTintList(ColorStateList.valueOf(Color.WHITE));
+    hintBar.setProgressBackgroundTintList(ColorStateList.valueOf(0x40FFFFFF));
+    hintValue = text("", 14, Color.WHITE, true);
+    hintPill.addView(hintLabel);
+    LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(dp(120), dp(6));
+    bl.setMargins(dp(12), 0, dp(12), 0);
+    hintPill.addView(hintBar, bl);
+    hintPill.addView(hintValue);
+    FrameLayout.LayoutParams hp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+    hp.setMargins(0, dp(24), 0, 0);
+    root.addView(hintPill, hp);
+
+    // --- controles (todos juntos para aparecer/sumir com fade)
+    controls = new FrameLayout(this);
+    controls.setPadding(dp(12), 0, dp(12), 0);
+    root.addView(controls, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    controls.setAlpha(0f);
+    controls.setVisibility(View.GONE);
+    buildTopBar();
+    buildCenter();
+    buildBottomBar();
+
+    // --- carregando no meio da reprodução
+    // anel ao redor do botão play (gira e pulsa) + aviso embaixo; só aparece se o carregamento passar de ~0,35 s
+    ring = new BufferRing(this);
+    ring.setVisibility(View.GONE);
+    root.addView(ring, new FrameLayout.LayoutParams(dp(112), dp(112), Gravity.CENTER));
+    bufferLabel = text("Carregando…", 13, Color.WHITE, true);
+    bufferLabel.setVisibility(View.GONE);
+    bufferLabel.setGravity(Gravity.CENTER);
+    bufferLabel.setPadding(dp(14), dp(6), dp(14), dp(6));
+    GradientDrawable lb = new GradientDrawable();
+    lb.setColor(0x99000000);
+    lb.setCornerRadius(dp(16));
+    bufferLabel.setBackground(lb);
+    FrameLayout.LayoutParams lbp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+    lbp.topMargin = dp(88);
+    root.addView(bufferLabel, lbp);
+
+    buildMenu();
+    buildLoading();
+
+    // margens de segurança (recorte da tela) para os controles não ficarem escondidos
+    ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+      Insets c = insets.getInsets(WindowInsetsCompat.Type.displayCutout() | WindowInsetsCompat.Type.systemBars());
+      controls.setPadding(Math.max(dp(12), c.left), Math.max(0, c.top), Math.max(dp(12), c.right), Math.max(0, c.bottom));
+      loadingLayer.setPadding(c.left, c.top, c.right, c.bottom);
+      // o anel fica exatamente no centro do botão play (que respeita o recorte da tela)
+      float ox = (Math.max(dp(12), c.left) - Math.max(dp(12), c.right)) / 2f, oy = (c.top - c.bottom) / 2f;
+      if (ring != null) { ring.setTranslationX(ox); ring.setTranslationY(oy); }
+      if (bufferLabel != null) { bufferLabel.setTranslationX(ox); bufferLabel.setTranslationY(oy); }
+      return insets;
+    });
+  }
+
+  private TextView flashLabel(String s) {
+    TextView t = text(s, 16, Color.WHITE, true);
+    t.setGravity(Gravity.CENTER);
+    t.setPadding(dp(18), dp(12), dp(18), dp(12));
+    t.setBackground(rounded(0x99000000, 28));
+    t.setVisibility(View.GONE);
+    return t;
+  }
+
+  private void buildTopBar() {
+    topBar = new LinearLayout(this);
+    topBar.setOrientation(LinearLayout.HORIZONTAL);
+    topBar.setGravity(Gravity.CENTER_VERTICAL);
+    topBar.setPadding(0, dp(12), 0, dp(34));
+    topBar.setBackground(scrim(true));
+    topBar.addView(roundBtn(new IconView(this, IconView.BACK, Color.WHITE), 44, 24, 0x33000000, v -> finishWith("closed", null)));
+    LinearLayout titles = new LinearLayout(this);
+    titles.setOrientation(LinearLayout.VERTICAL);
+    titles.setPadding(dp(14), 0, dp(14), 0);
+    TextView t1 = text(title, 18, Color.WHITE, true); t1.setSingleLine(true);
+    t1.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    titles.addView(t1);
+    if (!subtitle.isEmpty() || live) {
+      TextView t2 = text(subtitle, 13, MUTED, false); t2.setSingleLine(true);
+      topSub = t2;
+      t2.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      titles.addView(t2);
+    }
+    topBar.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    if (Build.VERSION.SDK_INT >= 26) {
+      pipIcon = new IconView(this, IconView.PIP, Color.WHITE);
+      topBar.addView(roundBtn(pipIcon, 44, 22, 0x33000000, v -> enterPip()));
+    }
+    controls.addView(topBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
+  }
+
+  private void buildCenter() {
+    centerRow = new LinearLayout(this);
+    centerRow.setOrientation(LinearLayout.HORIZONTAL);
+    centerRow.setGravity(Gravity.CENTER);
+    FrameLayout rew = roundBtn(new IconView(this, IconView.REW, Color.WHITE), 64, 40, 0x00000000, v -> { seekBy(-10000); scheduleHide(); });
+    playIcon = new IconView(this, IconView.PLAY, Color.WHITE);
+    FrameLayout play = roundBtn(playIcon, 84, 44, 0x4DFFFFFF, v -> { togglePlay(); scheduleHide(); });
+    FrameLayout fwd = roundBtn(new IconView(this, IconView.FWD, Color.WHITE), 64, 40, 0x00000000, v -> { seekBy(10000); scheduleHide(); });
+    LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(dp(84), dp(84));
+    gap.setMargins(dp(34), 0, dp(34), 0);
+    play.setLayoutParams(gap);
+    if (live) { rew.setVisibility(View.GONE); fwd.setVisibility(View.GONE); gap.setMargins(0, 0, 0, 0); play.setLayoutParams(gap); }
+    centerRow.addView(rew); centerRow.addView(play); centerRow.addView(fwd);
+    controls.addView(centerRow, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+  }
+
+  private void buildBottomBar() {
+    bottomBar = new LinearLayout(this);
+    bottomBar.setOrientation(LinearLayout.VERTICAL);
+    bottomBar.setPadding(0, dp(34), 0, dp(12));
+    bottomBar.setBackground(scrim(false));
+
+    LinearLayout seekRow = new LinearLayout(this);
+    seekRow.setGravity(Gravity.CENTER_VERTICAL);
+    timeNow = text("0:00", 13, Color.WHITE, true);
+    timeTotal = text("0:00", 13, MUTED, true);
+    seek = new SeekView(this);
+    seek.setListener(new SeekView.Listener() {
+      @Override public void onStart() { ui.removeCallbacks(hideRunner); }
+      @Override public void onMove(long ms) { timeNow.setText(fmt(ms)); }
+      @Override public void onStop(long ms) { if (player != null) player.seekTo(ms); scheduleHide(); }
+    });
+    seekRow.addView(timeNow, new LinearLayout.LayoutParams(dp(58), ViewGroup.LayoutParams.WRAP_CONTENT));
+    timeNow.setGravity(Gravity.CENTER);
+    seekRow.addView(seek, new LinearLayout.LayoutParams(0, dp(40), 1f));
+    seekRow.addView(timeTotal, new LinearLayout.LayoutParams(dp(58), ViewGroup.LayoutParams.WRAP_CONTENT));
+    timeTotal.setGravity(Gravity.CENTER);
+    if (live) {
+      LinearLayout liveRow = new LinearLayout(this);
+      liveRow.setGravity(Gravity.CENTER_VERTICAL);
+      liveRow.setPadding(dp(8), 0, dp(8), dp(4));
+      TextView badge = text("●  AO VIVO", 12, Color.WHITE, true);
+      badge.setLetterSpacing(0.08f);
+      badge.setPadding(dp(12), dp(6), dp(12), dp(6));
+      badge.setBackground(rounded(0xFFE50914, 14));
+      liveRow.addView(badge);
+      if (!subtitle.isEmpty() || live) {
+        TextView prog = text(subtitle, 14, 0xFFE0E0E8, true);
+        liveProg = prog;
+        prog.setSingleLine(true);
+        prog.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        prog.setPadding(dp(12), 0, 0, 0);
+        liveRow.addView(prog, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+      }
+      bottomBar.addView(liveRow);
+    } else {
+      bottomBar.addView(seekRow);
+    }
+
+    LinearLayout row = new LinearLayout(this);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(dp(6), dp(4), dp(6), 0);
+
+    HorizontalScrollView hsv = new HorizontalScrollView(this);
+    hsv.setHorizontalScrollBarEnabled(false);
+    hsv.setOverScrollMode(View.OVER_SCROLL_NEVER);
+    LinearLayout pills = new LinearLayout(this);
+    pills.setOrientation(LinearLayout.HORIZONTAL);
+    pills.setGravity(Gravity.CENTER_VERTICAL);
+    LinearLayout speedPill = pill(IconView.SPEED, speedLabel(), false, v -> showSpeedMenu());
+    speedTxt = pillText(speedPill);
+    subsPill = pill(IconView.SUBS, "Legendas", false, v -> showSubsMenu()); subsPill.setVisibility(View.GONE);
+    qualityPill = pill(IconView.QUALITY, "Qualidade", false, v -> showQualityMenu()); qualityPill.setVisibility(View.GONE);
+    LinearLayout serverPill = pill(IconView.SERVER, "Servidor", false, v -> showServerMenu());
+    LinearLayout fitPill = pill(IconView.FIT, "Ajustar", false, v -> toggleFit());
+    fitTxt = pillText(fitPill);
+    if (live) { speedPill.setVisibility(View.GONE); serverPill.setVisibility(View.GONE); }
+    LinearLayout prev = pill(IconView.PREV, "Canal anterior", false, v -> finishWith("prev", null));
+    prev.setVisibility(live && hasPrev ? View.VISIBLE : View.GONE);
+    prevPillView = prev;
+    pills.addView(prev); pills.addView(speedPill); pills.addView(subsPill); pills.addView(qualityPill); pills.addView(serverPill); pills.addView(fitPill);
+    hsv.addView(pills);
+    row.addView(hsv, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+    LinearLayout next = pill(IconView.NEXT, live ? "Próximo canal" : "Próximo", true, v -> finishWith("next", null));
+    next.setVisibility(hasNext ? View.VISIBLE : View.GONE);
+    nextPill = next;
+    row.addView(next);
+    bottomBar.addView(row);
+    controls.addView(bottomBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+  }
+
+  /** Painel lateral que desliza da direita (velocidade, legendas, qualidade, servidor). */
+  private void buildMenu() {
+    menuLayer = new FrameLayout(this);
+    menuLayer.setVisibility(View.GONE);
+    menuScrim = new View(this);
+    menuScrim.setBackgroundColor(0x80000000);
+    menuScrim.setOnClickListener(v -> closeMenu());
+    menuLayer.addView(menuScrim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    menuBox = new LinearLayout(this);
+    menuBox.setOrientation(LinearLayout.VERTICAL);
+    menuBox.setPadding(dp(8), dp(14), dp(8), dp(14));
+    menuScroll = new ScrollView(this);
+    GradientDrawable pbg = new GradientDrawable();
+    pbg.setColor(PANEL);
+    float r = dp(24);
+    pbg.setCornerRadii(new float[] { r, r, 0, 0, 0, 0, r, r });
+    menuScroll.setBackground(pbg);
+    menuScroll.setVerticalScrollBarEnabled(false);
+    menuScroll.addView(menuBox);
+    menuLayer.addView(menuScroll, new FrameLayout.LayoutParams(dp(310), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.END));
+    root.addView(menuLayer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+  }
+
+  /** Tela de carregamento: banner escurecido, título, barra horizontal deslizando. Some no primeiro quadro do vídeo. */
+  private void buildLoading() {
+    loadingLayer = new FrameLayout(this);
+    loadingLayer.setBackgroundColor(Color.BLACK);
+    loadingLayer.setClickable(true);
+    backdrop = new ImageView(this);
+    backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    backdrop.setAlpha(0f);
+    loadingLayer.addView(backdrop, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    View dim = new View(this);
+    dim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] { 0xB3000000, 0xE6000000 }));
+    loadingLayer.addView(dim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+    LinearLayout col = new LinearLayout(this);
+    col.setOrientation(LinearLayout.VERTICAL);
+    col.setGravity(Gravity.CENTER_HORIZONTAL);
+    if (live) {
+      logoView = new ImageView(this);
+      logoView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      logoView.setBackground(rounded(0x66000000, 24));
+      logoView.setPadding(dp(14), dp(14), dp(14), dp(14));
+      logoView.setAlpha(0f);
+      col.addView(logoView, new LinearLayout.LayoutParams(dp(104), dp(104)));
+    }
+    TextView brand = text(live ? "TV AO VIVO" : "ALXMOVIES", 12, RED, true);
+    brand.setLetterSpacing(0.3f);
+    brand.setPadding(0, live ? dp(14) : 0, 0, 0);
+    col.addView(brand);
+    TextView t = text(title, 28, Color.WHITE, true);
+    t.setGravity(Gravity.CENTER);
+    t.setPadding(0, dp(8), 0, 0);
+    t.setMaxLines(3);
+    col.addView(t);
+    if (!subtitle.isEmpty()) {
+      TextView s = text(subtitle, 15, 0xFFD0D0DA, true);
+      s.setGravity(Gravity.CENTER);
+      s.setPadding(0, dp(4), 0, 0);
+      col.addView(s);
+    }
+    SweepBar bar = new SweepBar(this);
+    LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(dp(240), dp(4));
+    blp.setMargins(0, dp(22), 0, 0);
+    col.addView(bar, blp);
+    TextView st = text(live ? "Conectando ao canal…" : "Preparando o vídeo…", 13, MUTED, false);
+    st.setPadding(0, dp(12), 0, 0);
+    col.addView(st);
+    FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(dp(560), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+    loadingLayer.addView(col, clp);
+
+    // voltar durante o carregamento
+    FrameLayout back = roundBtn(new IconView(this, IconView.BACK, Color.WHITE), 44, 24, 0x33FFFFFF, v -> finishWith("closed", null));
+    FrameLayout.LayoutParams blp2 = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.START);
+    blp2.setMargins(dp(16), dp(14), 0, 0);
+    loadingLayer.addView(back, blp2);
+
+    root.addView(loadingLayer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+  }
+
+  /** Baixa o banner do título (sem biblioteca) e mostra por trás da tela de carregamento. */
+  private void loadPoster() {
+    final String u = live ? logoUrl : poster;
+    if (u.isEmpty() || !u.startsWith("http")) return;
+    new Thread(() -> {
+      HttpURLConnection c = null;
+      try {
+        c = (HttpURLConnection) new URL(u).openConnection();
+        c.setConnectTimeout(6000);
+        c.setReadTimeout(8000);
+        InputStream in = c.getInputStream();
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inSampleSize = 1;
+        final Bitmap bmp = BitmapFactory.decodeStream(in, null, o);
+        in.close();
+        if (bmp != null) runOnUiThread(() -> {
+          if (isFinishing() || firstFrame) return;
+          ImageView target = live && logoView != null ? logoView : backdrop;
+          target.setImageBitmap(bmp);
+          target.animate().alpha(1f).setDuration(450).start();
+        });
+      } catch (Exception ignored) {
+      } finally {
+        if (c != null) c.disconnect();
+      }
+    }).start();
+  }
+
+  // =================================================================== controles
+  private String speedLabel() { return (rate == (int) rate ? String.valueOf((int) rate) : String.valueOf(rate)) + "x"; }
+
+  private static String fmt(long ms) {
+    long s = Math.max(0, ms / 1000), h = s / 3600, m = (s % 3600) / 60, sec = s % 60;
+    return h > 0 ? String.format(Locale.US, "%d:%02d:%02d", h, m, sec) : String.format(Locale.US, "%d:%02d", m, sec);
+  }
+
+  private void updateTime() {
+    if (player == null || live || seek.isDragging()) return;
+    long pos = player.getCurrentPosition(), dur = player.getDuration();
+    if (dur <= 0 || dur == C.TIME_UNSET) dur = 0;
+    timeNow.setText(fmt(pos));
+    if (dur > 0) timeTotal.setText(fmt(dur));
+    seek.setState(pos, player.getBufferedPosition(), dur);
+  }
+
+  private void setControls(boolean show) {
+    if (inPip) return;
+    controlsVisible = show;
+    controls.animate().cancel();
+    if (show) {
+      controls.setVisibility(View.VISIBLE);
+      controls.animate().alpha(1f).setDuration(180).start();
+      scheduleHide();
+    } else {
+      closeMenu();
+      controls.animate().alpha(0f).setDuration(200).withEndAction(() -> { if (!controlsVisible) controls.setVisibility(View.GONE); }).start();
+    }
+  }
+  private void scheduleHide() { ui.removeCallbacks(hideRunner); ui.postDelayed(hideRunner, 3800); }
+  private void togglePlay() { if (player == null) return; if (player.getPlayWhenReady()) player.pause(); else player.play(); }
+
+  /** Mostra/esconde o anel de carregamento (com um pequeno atraso para não piscar em travadas curtas). */
+  private void setBuffering(boolean on) {
+    ui.removeCallbacks(showBuffer);
+    ui.removeCallbacks(slowBuffer);
+    if (ring == null) return;
+    if (on) { ui.postDelayed(showBuffer, 350); return; }
+    ring.stop();
+    ring.setVisibility(View.GONE);
+    bufferLabel.setVisibility(View.GONE);
+  }
+
+  /** Durante o carregamento o botão continua mostrando "pausar" (o vídeo vai tocar assim que carregar), não "play". */
+  private void updatePlayIcon() {
+    if (player == null || playIcon == null) return;
+    boolean pause = player.isPlaying() || (player.getPlaybackState() == Player.STATE_BUFFERING && player.getPlayWhenReady());
+    playIcon.setType(pause ? IconView.PAUSE : IconView.PLAY);
+  }
+
+  private void toggleFit() {
+    zoomed = !zoomed;
+    aspect.setResizeMode(zoomed ? AspectRatioFrameLayout.RESIZE_MODE_ZOOM : AspectRatioFrameLayout.RESIZE_MODE_FIT);
+    fitTxt.setText(zoomed ? "Preencher" : "Ajustar");
+    scheduleHide();
+  }
+
+  private void seekBy(long ms) {
+    if (player == null) return;
+    long d = player.getDuration();
+    long t = Math.max(0, player.getCurrentPosition() + ms);
+    if (d > 0 && d != C.TIME_UNSET) t = Math.min(d, t);
+    player.seekTo(t);
+    TextView f = ms > 0 ? flashR : flashL;
+    Runnable hide = ms > 0 ? hideFlashR : hideFlashL;
+    f.setText((ms > 0 ? "+" : "−") + Math.abs(ms / 1000) + " s");
+    f.setVisibility(View.VISIBLE);
+    f.setScaleX(0.8f); f.setScaleY(0.8f);
+    f.animate().scaleX(1f).scaleY(1f).setDuration(160).setInterpolator(new DecelerateInterpolator()).start();
+    ui.removeCallbacks(hide); ui.postDelayed(hide, 650);
+  }
+
+  private void showHint(String label, int percent) {
+    hintLabel.setText(label);
+    hintBar.setProgress(percent);
+    hintValue.setText(percent + "%");
+    hintPill.setVisibility(View.VISIBLE);
+    ui.removeCallbacks(hideHint); ui.postDelayed(hideHint, 800);
+  }
+
+  private void adjustBrightness(float delta) {
+    WindowManager.LayoutParams lp = getWindow().getAttributes();
+    if (brightness < 0) brightness = lp.screenBrightness < 0 ? 0.5f : lp.screenBrightness;
+    brightness = Math.max(0.02f, Math.min(1f, brightness + delta));
+    lp.screenBrightness = brightness;
+    getWindow().setAttributes(lp);
+    showHint("Brilho", Math.round(brightness * 100));
+  }
+
+  private void adjustVolume(float delta) {
+    AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+    int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+    float cur = am.getStreamVolume(AudioManager.STREAM_MUSIC) + delta * max * 1.2f;
+    int v = Math.max(0, Math.min(max, Math.round(cur)));
+    am.setStreamVolume(AudioManager.STREAM_MUSIC, v, 0);
+    showHint("Volume", Math.round(v * 100f / max));
+  }
+
+  // =================================================================== painel lateral
+  private void closeMenu() {
+    if (!menuIsOpen) return;
+    menuIsOpen = false;
+    menuScroll.animate().translationX(dp(310)).setDuration(190).start();
+    menuScrim.animate().alpha(0f).setDuration(190).withEndAction(() -> { if (!menuIsOpen) menuLayer.setVisibility(View.GONE); }).start();
+    scheduleHide();
+  }
+
+  private void openMenu(String heading) {
+    menuBox.removeAllViews();
+    LinearLayout head = new LinearLayout(this);
+    head.setGravity(Gravity.CENTER_VERTICAL);
+    head.setPadding(dp(12), 0, dp(4), dp(8));
+    TextView h = text(heading, 18, Color.WHITE, true);
+    head.addView(h, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    FrameLayout x = roundBtn(new IconView(this, IconView.CLOSE, Color.WHITE), 40, 20, 0x00000000, v -> closeMenu());
+    head.addView(x);
+    menuBox.addView(head);
+    View line = new View(this);
+    line.setBackgroundColor(0x1FFFFFFF);
+    LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+    ll.setMargins(dp(8), 0, dp(8), dp(6));
+    menuBox.addView(line, ll);
+
+    ui.removeCallbacks(hideRunner);
+    if (!menuIsOpen) {
+      menuIsOpen = true;
+      menuLayer.setVisibility(View.VISIBLE);
+      menuScrim.setAlpha(0f);
+      menuScroll.setTranslationX(dp(310));
+      menuScrim.animate().alpha(1f).setDuration(190).start();
+      menuScroll.animate().translationX(0f).setDuration(230).setInterpolator(new DecelerateInterpolator()).start();
+    }
+  }
+
+  private void addItem(String text, String hint, boolean on, boolean enabled, Runnable action) {
+    LinearLayout row = new LinearLayout(this);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(dp(12), dp(13), dp(12), dp(13));
+    if (on) row.setBackground(rounded(0x22E50914, 14));
+    IconView mark = new IconView(this, on ? IconView.CHECK : IconView.NONE, RED);
+    row.addView(mark, new LinearLayout.LayoutParams(dp(22), dp(22)));
+    LinearLayout col = new LinearLayout(this);
+    col.setOrientation(LinearLayout.VERTICAL);
+    col.setPadding(dp(12), 0, 0, 0);
+    TextView t = text(text, 16, enabled ? (on ? Color.WHITE : 0xFFE6E6EC) : 0x66FFFFFF, on);
+    col.addView(t);
+    if (hint != null && !hint.isEmpty()) col.addView(text(hint, 12, 0x88FFFFFF, false));
+    row.addView(col, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    if (enabled) {
+      row.setOnClickListener(v -> { closeMenu(); action.run(); });
+      pressable(row);
+    }
+    menuBox.addView(row);
+  }
+
+  private void showSpeedMenu() {
+    openMenu("Velocidade");
+    final float[] rates = { 0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f };
+    for (float r : rates) addItem((r == (int) r ? String.valueOf((int) r) : String.valueOf(r)) + "x" + (r == 1f ? " (normal)" : ""), null, r == rate, true, () -> {
+      rate = r; if (player != null) player.setPlaybackSpeed(r); speedTxt.setText(speedLabel());
+    });
+  }
+
+  private void showServerMenu() {
+    openMenu("Servidor");
+    for (int i = 0; i < serverLabels.length; i++) {
+      final String l = serverLabels[i];
+      boolean ok = i < serverOk.length && serverOk[i];
+      addItem(l, ok ? null : "Indisponível agora", l.equals(currentServer), ok, () -> { if (!l.equals(currentServer)) finishWith("server", l); });
+    }
+    addItem(fallbackLabel, "Servidor de reserva", "fallback".equals(source), true, () -> { if (!"fallback".equals(source)) finishWith("server", fallbackLabel); });
+  }
+
+  private void showQualityMenu() {
+    if (player == null) return;
+    openMenu("Qualidade");
+    addItem("Automática", "Ajusta pela sua internet", !hasVideoOverride(), true, () -> player.setTrackSelectionParameters(
+      player.getTrackSelectionParameters().buildUpon().clearOverridesOfType(C.TRACK_TYPE_VIDEO).build()));
+    final List<Object[]> items = new ArrayList<>();
+    for (Tracks.Group g : player.getCurrentTracks().getGroups()) {
+      if (g.getType() != C.TRACK_TYPE_VIDEO) continue;
+      for (int i = 0; i < g.length; i++) {
+        if (!g.isTrackSupported(i)) continue;
+        Format f = g.getTrackFormat(i);
+        items.add(new Object[] { f.height > 0 ? f.height : f.bitrate / 1000, g, i, f.height > 0 });
+      }
+    }
+    items.sort((a, b) -> Integer.compare((Integer) b[0], (Integer) a[0]));
+    for (Object[] it : items) {
+      final Tracks.Group g = (Tracks.Group) it[1];
+      final int idx = (Integer) it[2];
+      String name = it[0] + ((Boolean) it[3] ? "p" : "k");
+      addItem(name, null, g.isTrackSelected(idx) && hasVideoOverride(), true, () -> player.setTrackSelectionParameters(
+        player.getTrackSelectionParameters().buildUpon().setOverrideForType(new TrackSelectionOverride(g.getMediaTrackGroup(), idx)).build()));
+    }
+  }
+  private boolean hasVideoOverride() {
+    for (TrackSelectionOverride o : player.getTrackSelectionParameters().overrides.values()) if (o.getType() == C.TRACK_TYPE_VIDEO) return true;
+    return false;
+  }
+
+  private void showSubsMenu() {
+    if (player == null) return;
+    openMenu("Legendas");
+    final boolean off = player.getTrackSelectionParameters().disabledTrackTypes.contains(C.TRACK_TYPE_TEXT);
+    addItem("Desativadas", null, off, true, () -> player.setTrackSelectionParameters(
+      player.getTrackSelectionParameters().buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()));
+    int n = 0;
+    for (Tracks.Group g : player.getCurrentTracks().getGroups()) {
+      if (g.getType() != C.TRACK_TYPE_TEXT) continue;
+      for (int i = 0; i < g.length; i++) {
+        final Tracks.Group gg = g; final int idx = i;
+        Format f = g.getTrackFormat(i);
+        String name = f.label != null ? f.label : (f.language != null ? f.language : "Legenda " + (++n));
+        addItem(name, null, !off && g.isTrackSelected(i), true, () -> player.setTrackSelectionParameters(
+          player.getTrackSelectionParameters().buildUpon().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+            .setOverrideForType(new TrackSelectionOverride(gg.getMediaTrackGroup(), idx)).build()));
+      }
+    }
+  }
+
+  // =================================================================== views próprias
+  /** Barra deslizante horizontal da tela de carregamento. */
+  static final class SweepBar extends View {
+    private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF rf = new RectF();
+    private float phase = 0f;
+    private ValueAnimator anim;
+
+    SweepBar(Context c) { super(c); }
+
+    @Override protected void onAttachedToWindow() {
+      super.onAttachedToWindow();
+      anim = ValueAnimator.ofFloat(0f, 1f);
+      anim.setDuration(1150);
+      anim.setRepeatCount(ValueAnimator.INFINITE);
+      anim.setInterpolator(new LinearInterpolator());
+      anim.addUpdateListener(a -> { phase = (Float) a.getAnimatedValue(); invalidate(); });
+      anim.start();
+    }
+    @Override protected void onDetachedFromWindow() {
+      if (anim != null) anim.cancel();
+      super.onDetachedFromWindow();
+    }
+    @Override protected void onDraw(Canvas c) {
+      float w = getWidth(), h = getHeight(), r = h / 2f;
+      p.setColor(0x29FFFFFF);
+      rf.set(0, 0, w, h);
+      c.drawRoundRect(rf, r, r, p);
+      float bw = w * 0.4f;
+      float x = -bw + (w + bw) * phase;
+      c.save();
+      c.clipRect(0, 0, w, h);
+      p.setColor(RED);
+      rf.set(x, 0, x + bw, h);
+      c.drawRoundRect(rf, r, r, p);
+      c.restore();
+    }
+  }
+
+  /** Barra de progresso do vídeo: trilho fino, parte carregada, parte vista em vermelho e bolinha que cresce ao arrastar. */
+  static final class SeekView extends View {
+    interface Listener { void onStart(); void onMove(long ms); void onStop(long ms); }
+    private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF rf = new RectF();
+    private final float d;
+    private long pos = 0, buf = 0, dur = 0;
+    private boolean drag = false;
+    private float dragFrac = 0f;
+    private Listener l;
+
+    SeekView(Context c) { super(c); d = c.getResources().getDisplayMetrics().density; }
+    void setListener(Listener l) { this.l = l; }
+    boolean isDragging() { return drag; }
+    void setState(long position, long buffered, long duration) {
+      pos = position; buf = buffered; dur = duration;
+      if (!drag) invalidate();
+    }
+
+    private float pad() { return 14f * d; }
+    private float frac(long v) { return dur > 0 ? Math.max(0f, Math.min(1f, (float) v / (float) dur)) : 0f; }
+
+    @Override protected void onDraw(Canvas c) {
+      float w = getWidth(), cy = getHeight() / 2f, pad = pad();
+      float left = pad, right = w - pad, len = right - left;
+      float th = (drag ? 6f : 4f) * d, r = th / 2f;
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(0x40FFFFFF);
+      rf.set(left, cy - r, right, cy + r);
+      c.drawRoundRect(rf, r, r, p);
+      p.setColor(0x73FFFFFF);
+      rf.set(left, cy - r, left + len * frac(buf), cy + r);
+      c.drawRoundRect(rf, r, r, p);
+      float f = drag ? dragFrac : frac(pos);
+      p.setColor(RED);
+      rf.set(left, cy - r, left + len * f, cy + r);
+      c.drawRoundRect(rf, r, r, p);
+      float tr = (drag ? 10f : 7f) * d;
+      p.setColor(Color.WHITE);
+      c.drawCircle(left + len * f, cy, tr + 1.5f * d, p);
+      p.setColor(RED);
+      c.drawCircle(left + len * f, cy, tr, p);
+    }
+
+    private void update(float x) {
+      float pad = pad(), len = Math.max(1f, getWidth() - 2 * pad);
+      dragFrac = Math.max(0f, Math.min(1f, (x - pad) / len));
+      if (l != null) l.onMove((long) (dragFrac * dur));
+      invalidate();
+    }
+
+    @Override public boolean onTouchEvent(MotionEvent e) {
+      if (dur <= 0) return true;
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+          drag = true;
+          if (l != null) l.onStart();
+          update(e.getX());
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          update(e.getX());
+          return true;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          drag = false;
+          long ms = (long) (dragFrac * dur);
+          pos = ms;
+          invalidate();
+          if (l != null) l.onStop(ms);
+          return true;
+        default:
+          return true;
+      }
+    }
+  }
+
+  /** Ícones desenhados à mão (grade 24x24), sem depender de imagens nem de fontes. */
+  /** Anel de carregamento ao redor do botão play: trilho claro, arco vermelho que gira e muda de tamanho e ondas que pulsam para fora. */
+  static final class BufferRing extends View {
+    private final Paint track = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint arc = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint wave = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF box = new RectF();
+    private ValueAnimator anim;
+    private float t = 0f;
+
+    BufferRing(Context c) {
+      super(c);
+      float d = c.getResources().getDisplayMetrics().density;
+      track.setStyle(Paint.Style.STROKE); track.setStrokeWidth(3f * d); track.setColor(0x40FFFFFF);
+      arc.setStyle(Paint.Style.STROKE); arc.setStrokeWidth(4.5f * d); arc.setStrokeCap(Paint.Cap.ROUND); arc.setColor(Color.parseColor("#E50914"));
+      wave.setStyle(Paint.Style.STROKE); wave.setStrokeWidth(2.5f * d); wave.setColor(Color.parseColor("#E50914"));
+    }
+
+    void start() {
+      if (anim != null && anim.isRunning()) return;
+      anim = ValueAnimator.ofFloat(0f, 1f);
+      anim.setDuration(1500);
+      anim.setRepeatCount(ValueAnimator.INFINITE);
+      anim.setInterpolator(new LinearInterpolator());
+      anim.addUpdateListener(a -> { t = (Float) a.getAnimatedValue(); invalidate(); });
+      anim.start();
+    }
+
+    void stop() { if (anim != null) { anim.cancel(); anim = null; } }
+
+    @Override protected void onDetachedFromWindow() { stop(); super.onDetachedFromWindow(); }
+
+    @Override protected void onDraw(Canvas cv) {
+      float d = getResources().getDisplayMetrics().density;
+      float cx = getWidth() / 2f, cy = getHeight() / 2f;
+      float r = Math.min(getWidth(), getHeight()) / 2f - 9f * d;
+      for (int i = 0; i < 2; i++) {                       // ondas saindo do anel
+        float p = (t + i * 0.5f) % 1f;
+        wave.setAlpha((int) (90 * (1f - p)));
+        cv.drawCircle(cx, cy, r + p * 8f * d, wave);
+      }
+      cv.drawCircle(cx, cy, r, track);
+      float start = t * 360f * 1.3f - 90f;                // arco: gira e cresce/encolhe
+      float sweep = 50f + 130f * (0.5f - 0.5f * (float) Math.cos(2 * Math.PI * t));
+      box.set(cx - r, cy - r, cx + r, cy + r);
+      cv.drawArc(box, start, sweep, false, arc);
+    }
+  }
+
+  static final class IconView extends View {
+    static final int PREV = 14, NONE = -1, BACK = 0, PLAY = 1, PAUSE = 2, REW = 3, FWD = 4, NEXT = 5, SPEED = 6, SUBS = 7, QUALITY = 8, SERVER = 9, PIP = 10, FIT = 11, CLOSE = 12, CHECK = 13;
+    private int type;
+    private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path path = new Path();
+    private final RectF rf = new RectF();
+
+    IconView(Context c, int type, int color) {
+      super(c);
+      this.type = type;
+      p.setColor(color);
+      p.setStrokeCap(Paint.Cap.ROUND);
+      p.setStrokeJoin(Paint.Join.ROUND);
+    }
+    void setType(int t) { if (t != type) { type = t; invalidate(); } }
+
+    private void stroke(float w) { p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(w); p.setPathEffect(null); }
+    private void fill() { p.setStyle(Paint.Style.FILL); p.setPathEffect(null); }
+    private void line(Canvas c, float x1, float y1, float x2, float y2) { c.drawLine(x1, y1, x2, y2, p); }
+
+    @Override protected void onDraw(Canvas c) {
+      float s = Math.min(getWidth(), getHeight()) / 24f;
+      c.save();
+      c.translate((getWidth() - 24f * s) / 2f, (getHeight() - 24f * s) / 2f);
+      c.scale(s, s);
+      path.reset();
+      switch (type) {
+        case BACK:
+          stroke(2.4f);
+          path.moveTo(15f, 5f); path.lineTo(8f, 12f); path.lineTo(15f, 19f);
+          c.drawPath(path, p);
+          break;
+        case CLOSE:
+          stroke(2.2f);
+          line(c, 6f, 6f, 18f, 18f); line(c, 18f, 6f, 6f, 18f);
+          break;
+        case CHECK:
+          stroke(2.6f);
+          path.moveTo(5f, 12.5f); path.lineTo(10f, 17.5f); path.lineTo(19f, 7.5f);
+          c.drawPath(path, p);
+          break;
+        case PLAY:
+          fill();
+          p.setPathEffect(new CornerPathEffect(1.6f));
+          path.moveTo(8f, 5f); path.lineTo(19.5f, 12f); path.lineTo(8f, 19f); path.close();
+          c.drawPath(path, p);
+          break;
+        case PAUSE:
+          fill();
+          rf.set(6.2f, 5f, 10.4f, 19f); c.drawRoundRect(rf, 1.3f, 1.3f, p);
+          rf.set(13.6f, 5f, 17.8f, 19f); c.drawRoundRect(rf, 1.3f, 1.3f, p);
+          break;
+        case REW:
+        case FWD:
+          drawSkip(c, type == FWD);
+          break;
+        case NEXT:
+          fill();
+          p.setPathEffect(new CornerPathEffect(1.4f));
+          path.moveTo(6f, 5f); path.lineTo(16f, 12f); path.lineTo(6f, 19f); path.close();
+          c.drawPath(path, p);
+          p.setPathEffect(null);
+          rf.set(17.2f, 5f, 19.6f, 19f); c.drawRoundRect(rf, 1.1f, 1.1f, p);
+          break;
+        case PREV:
+          c.save();
+          c.scale(-1f, 1f, 12f, 12f);
+          fill();
+          p.setPathEffect(new CornerPathEffect(1.4f));
+          path.moveTo(6f, 5f); path.lineTo(16f, 12f); path.lineTo(6f, 19f); path.close();
+          c.drawPath(path, p);
+          p.setPathEffect(null);
+          rf.set(17.2f, 5f, 19.6f, 19f); c.drawRoundRect(rf, 1.1f, 1.1f, p);
+          c.restore();
+          break;
+        case SPEED:
+          stroke(2f);
+          rf.set(3f, 5f, 21f, 23f);
+          c.drawArc(rf, 180f, 180f, false, p);
+          line(c, 12f, 14f, 16.4f, 8.8f);
+          fill();
+          c.drawCircle(12f, 14f, 1.7f, p);
+          break;
+        case SUBS:
+          stroke(2f);
+          rf.set(3f, 5f, 21f, 19f); c.drawRoundRect(rf, 3f, 3f, p);
+          line(c, 7f, 10.8f, 10.6f, 10.8f); line(c, 13.2f, 10.8f, 17f, 10.8f);
+          line(c, 7f, 14.4f, 12.2f, 14.4f); line(c, 14.8f, 14.4f, 17f, 14.4f);
+          break;
+        case QUALITY:
+          stroke(2f);
+          line(c, 4f, 7f, 20f, 7f); line(c, 4f, 12f, 20f, 12f); line(c, 4f, 17f, 20f, 17f);
+          fill();
+          c.drawCircle(9f, 7f, 2.5f, p); c.drawCircle(15f, 12f, 2.5f, p); c.drawCircle(8f, 17f, 2.5f, p);
+          break;
+        case SERVER:
+          stroke(2f);
+          rf.set(3.5f, 4.5f, 20.5f, 10.5f); c.drawRoundRect(rf, 2.4f, 2.4f, p);
+          rf.set(3.5f, 13.5f, 20.5f, 19.5f); c.drawRoundRect(rf, 2.4f, 2.4f, p);
+          fill();
+          c.drawCircle(7.6f, 7.5f, 1.1f, p); c.drawCircle(7.6f, 16.5f, 1.1f, p);
+          break;
+        case PIP:
+          stroke(2f);
+          rf.set(3f, 5.5f, 21f, 18.5f); c.drawRoundRect(rf, 2.6f, 2.6f, p);
+          fill();
+          rf.set(11.4f, 11f, 18f, 16f); c.drawRoundRect(rf, 1.2f, 1.2f, p);
+          break;
+        case FIT:
+          stroke(2.2f);
+          path.moveTo(4f, 9f); path.lineTo(4f, 5f); path.lineTo(8f, 5f);
+          path.moveTo(16f, 5f); path.lineTo(20f, 5f); path.lineTo(20f, 9f);
+          path.moveTo(20f, 15f); path.lineTo(20f, 19f); path.lineTo(16f, 19f);
+          path.moveTo(8f, 19f); path.lineTo(4f, 19f); path.lineTo(4f, 15f);
+          c.drawPath(path, p);
+          break;
+        default:
+          break;
+      }
+      c.restore();
+    }
+
+    /** Seta circular com "10" no meio: ↻ para avançar, ↺ (espelhada) para voltar. */
+    private void drawSkip(Canvas c, boolean fwd) {
+      c.save();
+      if (!fwd) c.scale(-1f, 1f, 12f, 12f);
+      stroke(1.9f);
+      rf.set(4f, 5.2f, 20f, 21.2f);
+      c.drawArc(rf, -50f, 280f, false, p);
+      double th = Math.toRadians(230.0);
+      float ex = 12f + 8f * (float) Math.cos(th), ey = 13.2f + 8f * (float) Math.sin(th);
+      float tx = (float) -Math.sin(th), ty = (float) Math.cos(th); // sentido horário
+      float nx = -ty, ny = tx;
+      fill();
+      path.reset();
+      path.moveTo(ex + tx * 3.6f, ey + ty * 3.6f);
+      path.lineTo(ex + nx * 3.1f, ey + ny * 3.1f);
+      path.lineTo(ex - nx * 3.1f, ey - ny * 3.1f);
+      path.close();
+      c.drawPath(path, p);
+      c.restore();
+      fill();
+      p.setTextAlign(Paint.Align.CENTER);
+      p.setTypeface(Typeface.DEFAULT_BOLD);
+      p.setTextSize(7.6f);
+      c.drawText("10", 12f, 16.2f, p);
+      p.setTextAlign(Paint.Align.LEFT);
+    }
+  }
+}
