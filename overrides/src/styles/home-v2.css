@@ -1,0 +1,78 @@
+/* ============================================================
+   HOME v2 — destaques maiores (com botões), atalhos em "pílulas" e Top 10.
+   Mesmo visual preto + vermelho do resto do app. Carregado junto com o HeroCarousel,
+   depois dos estilos principais (por isso estas regras vencem as de redesign.css).
+============================================================ */
+
+/* ---------- Destaques ---------- */
+.hc-slide { height: clamp(460px, 76vh, 720px); }
+html.native .hc-slide { height: calc(clamp(460px, 74vh, 720px) + var(--sat, 0px)); }
+
+/* zoom bem lento na imagem do destaque ativo */
+.hc-slide img { transform: scale(1); transition: transform 9s ease-out; }
+.hc-slide.on img { transform: scale(1.08); }
+
+.hc-shade {
+  background:
+    linear-gradient(0deg, #141414 0%, rgba(20, 20, 20, 0.86) 20%, rgba(0, 0, 0, 0) 58%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 24%);
+}
+
+.hc-info { bottom: 58px; gap: 8px; }
+.hc-slide.on .hc-info > * { animation: hx2-rise 0.55s cubic-bezier(.2, .7, .2, 1) both; }
+.hc-slide.on .hc-info > :nth-child(2) { animation-delay: 0.05s; }
+.hc-slide.on .hc-info > :nth-child(3) { animation-delay: 0.1s; }
+.hc-slide.on .hc-info > :nth-child(4) { animation-delay: 0.15s; }
+@keyframes hx2-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.hx2-meta {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 10px;
+  color: #d2d2d2; font-weight: 600; font-size: 0.88rem; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+.hx2-meta span + span::before { content: "•"; margin-right: 10px; color: #777; }
+.hx2-meta .r { color: #46d369; font-weight: 800; }
+
+.hx2-actions { display: flex; gap: 10px; margin-top: 6px; pointer-events: auto; }
+.hx2-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 22px; border: 0; border-radius: 6px;
+  font-family: inherit; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.hx2-btn:active { transform: scale(0.96); }
+.hx2-btn.play { background: #fff; color: #000; }
+.hx2-btn.play:active { background: rgba(255, 255, 255, 0.75); }
+.hx2-btn.info { background: rgba(109, 109, 110, 0.7); color: #fff; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.hx2-btn svg { flex: none; }
+
+.hc-dots { bottom: 22px; }
+
+/* ---------- Atalhos ---------- */
+.hx-chips {
+  display: flex; gap: 8px; overflow-x: auto; padding: 14px 16px 2px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.hx-chips::-webkit-scrollbar { display: none; }
+.hx-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.06);
+  color: #fff; font-family: inherit; font-weight: 700; font-size: 0.88rem; cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.hx-chip svg { color: #e50914; flex: none; }
+.hx-chip:active { background: rgba(255, 255, 255, 0.16); transform: scale(0.97); }
+
+/* ---------- Fileiras (só na Home) ---------- */
+.home-v2 .row { animation: hx2-rise 0.5s cubic-bezier(.2, .7, .2, 1) both; }
+
+@media (min-width: 900px) {
+  .hx-chips { padding-left: 48px; }
+  .hc-info { bottom: 72px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hc-slide img { transition: none; }
+  .hc-slide.on img { transform: none; }
+  .hc-slide.on .hc-info > *, .home-v2 .row { animation: none !important; }
+}
