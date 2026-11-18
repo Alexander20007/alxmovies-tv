@@ -19,6 +19,7 @@ jobs:
       KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,6 +62,15 @@ jobs:
           # Padrão: proxy DESLIGADO (variável vazia = tudo direto, como antes). Para ligar crie a variável VITE_USE_PROXY = true.
           VITE_USE_PROXY: ${{ vars.VITE_USE_PROXY }}
         run: npm run build
+
+      # Publica o SITE no Netlify (alxmovies.netlify.app) com o que acabou de ser compilado. Só roda se o secret NETLIFY_AUTH_TOKEN existir.
+      # Sem o secret, esta etapa é pulada e o APK sai normalmente.
+      - name: Publicar o site no Netlify
+        if: ${{ env.NETLIFY_AUTH_TOKEN != '' }}
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          NETLIFY_SITE_ID: 9082726b-f428-4db4-bb90-b5eccf56ce51
+        run: npx --yes netlify-cli@latest deploy --prod --dir=dist --no-build --message "ALXmovies ${GITHUB_SHA::7}"
 
       - name: Criar o projeto Android (Capacitor)
         working-directory: ${{ env.APP_DIR }}
@@ -121,6 +131,12 @@ jobs:
           VITE_USE_PROXY: ${{ vars.VITE_USE_PROXY }}
         run: node scripts/android/patch-android.mjs
 
+      # Libera espaço no disco do GitHub (o build do Android é pesado e pode faltar espaço). Remove só o que não usamos.
+      - name: Liberar espaço em disco
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/share/swift || true
+          df -h / | tail -1
+
       - name: Aceitar licenças e instalar o SDK do Android
         run: |
           SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
@@ -131,7 +147,26 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon --stacktrace "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+
+      # Só roda se o build falhar: mostra a CAUSA em poucas linhas (copie daqui em vez de procurar no log enorme).
+      - name: Resumo do erro (aparece só se falhar)
+        if: failure()
+        run: |
+          LOG="$RUNNER_TEMP/gradle.log"
+          echo "===== Espaço em disco ====="
+          df -h / | tail -2
+          if [ -f "$LOG" ]; then
+            echo "===== O que deu errado ====="
+            grep -n -A 12 "What went wrong" "$LOG" | head -40 || true
+            echo "===== Causas (Caused by) ====="
+            grep -n "Caused by" "$LOG" | head -15 || true
+            echo "===== Erros de compilação ====="
+            grep -n "error:" "$LOG" | head -15 || true
+          else
+            echo "O log do Gradle não existe (a falha foi antes dele)."
+          fi
 
       - name: Alinhar e assinar o APK
         working-directory: ${{ env.APP_DIR }}
