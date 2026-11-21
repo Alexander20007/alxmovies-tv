@@ -23,6 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A assinatura é SEMPRE a sua chave (secrets do GitHub). Não existe mais chave de teste: sem os 3 secrets o build para aqui, avisando.
+      - name: Verificar a chave de assinatura (secrets)
+        run: |
+          MISSING=""
+          [ -z "$KS_B64" ]   && MISSING="$MISSING ANDROID_KEYSTORE_BASE64"
+          [ -z "$KS_ALIAS" ] && MISSING="$MISSING ANDROID_KEY_ALIAS"
+          [ -z "$KS_PASS" ]  && MISSING="$MISSING ANDROID_KEYSTORE_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Faltam secrets no GitHub:$MISSING. Cadastre em Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Os 3 secrets da chave de assinatura estão cadastrados."
+
       # Se houver um arquivo .zip na raiz do repositório (ex.: alxmovies-android.zip), o app é descompactado dele.
       # Isso permite subir o projeto inteiro pelo celular, com um único arquivo.
       - name: Localizar o projeto
@@ -62,6 +75,46 @@ jobs:
           # Padrão: proxy DESLIGADO (variável vazia = tudo direto, como antes). Para ligar crie a variável VITE_USE_PROXY = true.
           VITE_USE_PROXY: ${{ vars.VITE_USE_PROXY }}
         run: npm run build
+
+      # Mostra as impressões digitais (SHA-1 e SHA-256) da SUA chave de assinatura e grava o SHA-256 no assetlinks.json do site.
+      # SHA-1   -> Google Cloud: cliente OAuth do tipo Android (pacote com.alxmovies.app), para o Login com Google.
+      # SHA-256 -> Android App Links: vai para https://SEU-SITE/.well-known/assetlinks.json (gerado aqui, antes de publicar o site).
+      # Aparece no "Resumo" no alto da página desta execução (Actions → clique na execução) e nos avisos azuis.
+      - name: Chave de assinatura (SHA-1 e SHA-256) e assetlinks.json
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          echo "$KS_B64" | base64 -d > release.keystore
+          if ! INFO=$(keytool -list -v -keystore release.keystore -alias "$KS_ALIAS" -storepass "$KS_PASS" 2>&1); then
+            echo "::error::Não consegui abrir a chave de assinatura. Confira os secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS e ANDROID_KEYSTORE_PASSWORD."
+            echo "$INFO" | tail -3
+            exit 1
+          fi
+          SHA1=$(echo "$INFO" | grep -m1 "SHA1:" | sed 's/.*SHA1: *//' | tr -d ' ')
+          SHA256=$(echo "$INFO" | grep -m1 "SHA256:" | sed 's/.*SHA256: *//' | tr -d ' ')
+          [ -n "$SHA1" ] && [ -n "$SHA256" ] || { echo "::error::Não consegui ler o SHA-1/SHA-256 da chave."; exit 1; }
+
+          echo ""
+          echo "==============================================================="
+          echo "  SHA-1   (Google Cloud, cliente Android): $SHA1"
+          echo "  SHA-256 (App Links / assetlinks.json):   $SHA256"
+          echo "==============================================================="
+          echo "::notice title=SHA-1 da chave (Google Cloud)::$SHA1"
+          echo "::notice title=SHA-256 da chave (assetlinks.json)::$SHA256"
+          {
+            echo "### 🔑 Chave de assinatura do ALXmovies"
+            echo ""
+            echo "| | Valor |"
+            echo "|---|---|"
+            echo "| **SHA-1** | \`$SHA1\` |"
+            echo "| **SHA-256** | \`$SHA256\` |"
+            echo ""
+            echo "- **SHA-1**: Google Cloud → Credenciais → ID do cliente OAuth do tipo **Android** (pacote \`com.alxmovies.app\`)."
+            echo "- **SHA-256**: já foi gravado em \`/.well-known/assetlinks.json\` do site neste build."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          mkdir -p dist/.well-known
+          printf '[\n  {\n    "relation": ["delegate_permission/common.handle_all_urls"],\n    "target": {\n      "namespace": "android_app",\n      "package_name": "com.alxmovies.app",\n      "sha256_cert_fingerprints": [\n        "%s"\n      ]\n    }\n  }\n]\n' "$SHA256" > dist/.well-known/assetlinks.json
+          echo "assetlinks.json do site:"; cat dist/.well-known/assetlinks.json
 
       # Publica o SITE no Netlify (alxmovies.netlify.app) com o que acabou de ser compilado. Só roda se o secret NETLIFY_AUTH_TOKEN existir.
       # Sem o secret, esta etapa é pulada e o APK sai normalmente.
@@ -175,29 +228,22 @@ jobs:
           UNSIGNED=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
           echo "APK sem assinatura: $UNSIGNED"
 
-          if [ -n "$KS_B64" ]; then
-            echo "$KS_B64" | base64 -d > release.keystore
-            KS=release.keystore; ALIAS="$KS_ALIAS"; PASS="$KS_PASS"
-            echo "Assinando com a SUA chave (secrets)."
-          else
-            KS=keystore/alxmovies-sideload.p12; ALIAS=alxmovies; PASS=alxmovies123
-            echo "Assinando com a chave de teste do repositório (serve para instalar direto no celular)."
-          fi
-
+          # Assina com a SUA chave (secrets). Não existe mais chave de teste.
+          echo "$KS_B64" | base64 -d > release.keystore
           "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
-          "$BT/apksigner" sign --ks "$KS" --ks-key-alias "$ALIAS" --ks-pass "pass:$PASS" --key-pass "pass:$PASS" \
+          "$BT/apksigner" sign --ks release.keystore --ks-key-alias "$KS_ALIAS" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
             --out ALXmovies.apk aligned.apk
           "$BT/apksigner" verify --verbose ALXmovies.apk | head -5
-          echo "=============================================================="
-          echo "LINKS QUE ABREM O APP (App Links)"
-          HEX=$("$BT/apksigner" verify --print-certs ALXmovies.apk | grep -i "SHA-256 digest" | head -1 | sed 's/.*: *//' | tr 'a-f' 'A-F')
-          FP=$(echo "$HEX" | sed 's/../&:/g; s/:$//')
-          echo "Impressão digital da chave que assinou este APK:"
-          echo "$FP"
-          echo ""
-          echo "Conteúdo pronto para public/.well-known/assetlinks.json:"
-          echo '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.alxmovies.app","sha256_cert_fingerprints":["'"$FP"'"]}}]'
-          echo "=============================================================="
+
+          CERTS=$("$BT/apksigner" verify --print-certs ALXmovies.apk)
+          fmt() { echo "$1" | tr 'a-f' 'A-F' | sed 's/../&:/g; s/:$//'; }
+          S1=$(fmt "$(echo "$CERTS" | grep -i "SHA-1 digest" | head -1 | sed 's/.*: *//')")
+          S256=$(fmt "$(echo "$CERTS" | grep -i "SHA-256 digest" | head -1 | sed 's/.*: *//')")
+          echo "==============================================================="
+          echo "Chave que assinou este APK:"
+          echo "  SHA-1:   $S1"
+          echo "  SHA-256: $S256"
+          echo "==============================================================="
           ls -la ALXmovies.apk
 
       - uses: actions/upload-artifact@v4
